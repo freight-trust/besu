@@ -28,6 +28,7 @@ import org.hyperledger.besu.ethereum.mainnet.precompiles.ECRECPrecompiledContrac
 import org.hyperledger.besu.ethereum.mainnet.precompiles.IDPrecompiledContract;
 import org.hyperledger.besu.ethereum.mainnet.precompiles.RIPEMD160PrecompiledContract;
 import org.hyperledger.besu.ethereum.mainnet.precompiles.SHA256PrecompiledContract;
+import org.hyperledger.besu.ethereum.mainnet.precompiles.privacy.OnChainPrivacyPrecompiledContract;
 import org.hyperledger.besu.ethereum.mainnet.precompiles.daml.DamlPublicPrecompiledContract;
 import org.hyperledger.besu.ethereum.mainnet.precompiles.privacy.PrivacyPrecompiledContract;
 import org.hyperledger.besu.ethereum.vm.GasCalculator;
@@ -114,15 +115,22 @@ public abstract class MainnetPrecompiledContractRegistries {
       final PrecompileContractRegistry registry,
       final PrecompiledContractConfiguration precompiledContractConfiguration,
       final int accountVersion) {
-    final Address address = Address.privacyPrecompiled(
-        precompiledContractConfiguration.getPrivacyParameters()
-            .getPrivacyAddress());
-    registry.put(address, accountVersion,
-                 new PrivacyPrecompiledContract(
-                     precompiledContractConfiguration.getGasCalculator(),
-                     precompiledContractConfiguration.getPrivacyParameters()));
-    return registry;
-  }
+    final Address address =
+        Address.privacyPrecompiled(
+            precompiledContractConfiguration.getPrivacyParameters().getPrivacyAddress());
+    registry.put(
+        address,
+        accountVersion,
+        new PrivacyPrecompiledContract(
+            precompiledContractConfiguration.getGasCalculator(),
+            precompiledContractConfiguration.getPrivacyParameters()));
+    registry.put(
+        Address.ONCHAIN_PRIVACY,
+        accountVersion,
+        new OnChainPrivacyPrecompiledContract(
+            precompiledContractConfiguration.getGasCalculator(),
+            precompiledContractConfiguration.getPrivacyParameters()));
+
 
   static PrecompileContractRegistry appendDamlPublic(
       final PrecompileContractRegistry registry,

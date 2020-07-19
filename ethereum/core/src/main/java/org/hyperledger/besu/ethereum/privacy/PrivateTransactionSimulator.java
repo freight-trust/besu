@@ -66,8 +66,13 @@ public class PrivateTransactionSimulator {
     this.worldStateArchive = worldStateArchive;
     this.protocolSchedule = protocolSchedule;
     this.privacyParameters = privacyParameters;
-    this.privateStateRootResolver =
-        new PrivateStateRootResolver(privacyParameters.getPrivateStateStorage());
+    this.privateStateRootResolver = privacyParameters.getPrivateStateRootResolver();
+  }
+
+  public Optional<PrivateTransactionProcessor.Result> process(
+      final String privacyGroupId, final CallParameter callParams) {
+    final BlockHeader header = blockchain.getChainHeadHeader();
+    return process(privacyGroupId, callParams, header);
   }
 
   public Optional<PrivateTransactionProcessor.Result> process(
@@ -116,6 +121,8 @@ public class PrivateTransactionSimulator {
             publicWorldState.updater(),
             disposablePrivateState.updater(),
             header,
+            Hash.ZERO, // Corresponding PMT hash not needed as this private transaction doesn't
+            // exist
             transaction,
             protocolSpec.getMiningBeneficiaryCalculator().calculateBeneficiary(header),
             new DebugOperationTracer(TraceOptions.DEFAULT),
