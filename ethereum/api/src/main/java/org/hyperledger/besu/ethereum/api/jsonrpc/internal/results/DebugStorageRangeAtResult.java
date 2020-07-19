@@ -1,30 +1,31 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.results;
 
-import org.hyperledger.besu.ethereum.core.AccountStorageEntry;
-
-import java.util.NavigableMap;
-import java.util.Objects;
-import java.util.TreeMap;
-
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.base.MoreObjects;
+import java.util.NavigableMap;
+import java.util.Objects;
+import java.util.TreeMap;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
+import org.hyperledger.besu.ethereum.core.AccountStorageEntry;
 
 public class DebugStorageRangeAtResult implements JsonRpcResult {
 
@@ -33,27 +34,26 @@ public class DebugStorageRangeAtResult implements JsonRpcResult {
 
   public DebugStorageRangeAtResult(
       final NavigableMap<Bytes32, AccountStorageEntry> entries,
-      final Bytes32 nextKey,
-      final boolean shortValues) {
+      final Bytes32 nextKey, final boolean shortValues) {
     if (shortValues) {
       entries.forEach(
-          (keyHash, entry) ->
-              storage.put(
-                  toStrictShortHexString(keyHash.toString()),
-                  new StorageEntry(entry, shortValues)));
+          (keyHash, entry)
+              -> storage.put(toStrictShortHexString(keyHash.toString()),
+                             new StorageEntry(entry, shortValues)));
       this.nextKey = nextKey != null ? nextKey.toString() : null;
 
     } else {
-      entries.forEach(
-          (keyHash, entry) ->
-              storage.put(keyHash.toString(), new StorageEntry(entry, shortValues)));
+      entries.forEach((keyHash, entry)
+                          -> storage.put(keyHash.toString(),
+                                         new StorageEntry(entry, shortValues)));
       this.nextKey = nextKey != null ? nextKey.toString() : null;
     }
   }
 
   private static String toStrictShortHexString(final String hex) {
     // Skipping '0x'
-    if (hex.charAt(2) != '0') return hex;
+    if (hex.charAt(2) != '0')
+      return hex;
 
     int i = 3;
     while (i < hex.length() - 1 && hex.charAt(i) == '0') {
@@ -85,15 +85,14 @@ public class DebugStorageRangeAtResult implements JsonRpcResult {
     private final String value;
     private final String key;
 
-    public StorageEntry(final AccountStorageEntry entry, final boolean shortValues) {
+    public StorageEntry(final AccountStorageEntry entry,
+                        final boolean shortValues) {
       if (shortValues) {
         this.value = entry.getValue().toShortHexString();
-        this.key =
-            entry
-                .getKey()
-                .map(UInt256::toShortHexString)
-                .map(s -> "0x".equals(s) ? "0x00" : s)
-                .orElse(null);
+        this.key = entry.getKey()
+                       .map(UInt256::toShortHexString)
+                       .map(s -> "0x".equals(s) ? "0x00" : s)
+                       .orElse(null);
       } else {
         this.value = entry.getValue().toHexString();
         this.key = entry.getKey().map(UInt256::toHexString).orElse(null);
@@ -112,7 +111,10 @@ public class DebugStorageRangeAtResult implements JsonRpcResult {
 
     @Override
     public String toString() {
-      return MoreObjects.toStringHelper(this).add("key", key).add("value", value).toString();
+      return MoreObjects.toStringHelper(this)
+          .add("key", key)
+          .add("value", value)
+          .toString();
     }
 
     @Override
@@ -123,7 +125,7 @@ public class DebugStorageRangeAtResult implements JsonRpcResult {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      final StorageEntry that = (StorageEntry) o;
+      final StorageEntry that = (StorageEntry)o;
       return Objects.equals(value, that.value);
     }
 

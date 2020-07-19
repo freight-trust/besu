@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -21,6 +24,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.BlockParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.FilterParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.LogResult;
@@ -38,18 +51,6 @@ import org.hyperledger.besu.ethereum.core.Log;
 import org.hyperledger.besu.ethereum.core.LogTopic;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.TransactionReceipt;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.google.common.collect.Lists;
-import org.apache.tuweni.bytes.Bytes;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,12 +86,16 @@ public class LogsSubscriptionServiceTest {
     final int logIndex = 1;
     final Log targetLog = receipts.get(txIndex).getLogs().get(logIndex);
 
-    final LogsSubscription subscription = createSubscription(targetLog.getLogger());
+    final LogsSubscription subscription =
+        createSubscription(targetLog.getLogger());
     registerSubscriptions(subscription);
-    blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+    blockchain.appendBlock(blockWithReceipts.getBlock(),
+                           blockWithReceipts.getReceipts());
 
-    final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
-    verify(subscriptionManager).sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
+    final ArgumentCaptor<LogResult> captor =
+        ArgumentCaptor.forClass(LogResult.class);
+    verify(subscriptionManager)
+        .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
 
     final List<LogResult> logResults = captor.getAllValues();
 
@@ -110,9 +115,11 @@ public class LogsSubscriptionServiceTest {
     final int logIndex = 1;
     final Log targetLog = receipts.get(txIndex).getLogs().get(logIndex);
 
-    final LogsSubscription subscription = createSubscription(targetLog.getLogger());
+    final LogsSubscription subscription =
+        createSubscription(targetLog.getLogger());
     registerSubscriptions(subscription);
-    blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+    blockchain.appendBlock(blockWithReceipts.getBlock(),
+                           blockWithReceipts.getReceipts());
 
     // Cause a reorg that removes the block which emitted an event
     BlockHeader parentHeader = blockchain.getGenesisBlock().getHeader();
@@ -122,7 +129,8 @@ public class LogsSubscriptionServiceTest {
       blockchain.appendBlock(newBlock.getBlock(), newBlock.getReceipts());
     }
 
-    final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
+    final ArgumentCaptor<LogResult> captor =
+        ArgumentCaptor.forClass(LogResult.class);
     verify(subscriptionManager, times(2))
         .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
 
@@ -146,9 +154,11 @@ public class LogsSubscriptionServiceTest {
     final int logIndex = 1;
     final Log targetLog = receipts.get(txIndex).getLogs().get(logIndex);
 
-    final LogsSubscription subscription = createSubscription(targetLog.getLogger());
+    final LogsSubscription subscription =
+        createSubscription(targetLog.getLogger());
     registerSubscriptions(subscription);
-    blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+    blockchain.appendBlock(blockWithReceipts.getBlock(),
+                           blockWithReceipts.getReceipts());
 
     // Cause a reorg that removes the block which emitted an event
     BlockHeader parentHeader = blockchain.getGenesisBlock().getHeader();
@@ -161,11 +171,14 @@ public class LogsSubscriptionServiceTest {
     // Now add another block that re-emits the target log
     final BlockWithReceipts newBlockWithLog =
         generateBlock(1, () -> Collections.singletonList(targetLog));
-    blockchain.appendBlock(newBlockWithLog.getBlock(), newBlockWithLog.getReceipts());
+    blockchain.appendBlock(newBlockWithLog.getBlock(),
+                           newBlockWithLog.getReceipts());
     // Sanity check
-    assertThat(blockchain.getChainHeadHash()).isEqualTo(newBlockWithLog.getBlock().getHash());
+    assertThat(blockchain.getChainHeadHash())
+        .isEqualTo(newBlockWithLog.getBlock().getHash());
 
-    final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
+    final ArgumentCaptor<LogResult> captor =
+        ArgumentCaptor.forClass(LogResult.class);
     verify(subscriptionManager, times(3))
         .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
 
@@ -173,12 +186,14 @@ public class LogsSubscriptionServiceTest {
 
     assertThat(logResults).hasSize(3);
     final LogResult originalLog = logResults.get(0);
-    assertLogResultMatches(originalLog, block, receipts, txIndex, logIndex, false);
+    assertLogResultMatches(originalLog, block, receipts, txIndex, logIndex,
+                           false);
     final LogResult removedLog = logResults.get(1);
-    assertLogResultMatches(removedLog, block, receipts, txIndex, logIndex, true);
+    assertLogResultMatches(removedLog, block, receipts, txIndex, logIndex,
+                           true);
     final LogResult updatedLog = logResults.get(2);
-    assertLogResultMatches(
-        updatedLog, newBlockWithLog.getBlock(), newBlockWithLog.getReceipts(), 0, 0, false);
+    assertLogResultMatches(updatedLog, newBlockWithLog.getBlock(),
+                           newBlockWithLog.getReceipts(), 0, 0, false);
   }
 
   @Test
@@ -187,23 +202,27 @@ public class LogsSubscriptionServiceTest {
     final Log otherLog = gen.log();
     final List<Log> logs = Arrays.asList(targetLog, otherLog);
 
-    final LogsSubscription subscription = createSubscription(targetLog.getLogger());
+    final LogsSubscription subscription =
+        createSubscription(targetLog.getLogger());
     registerSubscriptions(subscription);
 
     // Generate blocks with multiple logs matching subscription
     final int txCount = 2;
     final List<BlockWithReceipts> targetBlocks = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      final BlockWithReceipts blockWithReceipts = generateBlock(txCount, () -> logs);
+      final BlockWithReceipts blockWithReceipts =
+          generateBlock(txCount, () -> logs);
       targetBlocks.add(blockWithReceipts);
-      blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+      blockchain.appendBlock(blockWithReceipts.getBlock(),
+                             blockWithReceipts.getReceipts());
 
       // Add another block with unrelated logs
       final BlockWithReceipts otherBlock = generateBlock(txCount, 2, 2);
       blockchain.appendBlock(otherBlock.getBlock(), otherBlock.getReceipts());
     }
 
-    final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
+    final ArgumentCaptor<LogResult> captor =
+        ArgumentCaptor.forClass(LogResult.class);
     verify(subscriptionManager, times(targetBlocks.size() * txCount))
         .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
     final List<LogResult> logResults = captor.getAllValues();
@@ -214,13 +233,9 @@ public class LogsSubscriptionServiceTest {
       final BlockWithReceipts targetBlock = targetBlocks.get(i);
       for (int j = 0; j < txCount; j++) {
         final int resultIndex = i * txCount + j;
-        assertLogResultMatches(
-            logResults.get(resultIndex),
-            targetBlock.getBlock(),
-            targetBlock.getReceipts(),
-            j,
-            0,
-            false);
+        assertLogResultMatches(logResults.get(resultIndex),
+                               targetBlock.getBlock(),
+                               targetBlock.getReceipts(), j, 0, false);
       }
     }
   }
@@ -240,10 +255,12 @@ public class LogsSubscriptionServiceTest {
             .limit(3)
             .collect(Collectors.toList());
     registerSubscriptions(subscriptions);
-    blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+    blockchain.appendBlock(blockWithReceipts.getBlock(),
+                           blockWithReceipts.getReceipts());
 
     for (LogsSubscription subscription : subscriptions) {
-      final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
+      final ArgumentCaptor<LogResult> captor =
+          ArgumentCaptor.forClass(LogResult.class);
       verify(subscriptionManager)
           .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
 
@@ -262,9 +279,11 @@ public class LogsSubscriptionServiceTest {
     registerSubscriptions(subscription);
 
     final BlockWithReceipts blockWithReceipts = generateBlock(2, 0, 0);
-    blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+    blockchain.appendBlock(blockWithReceipts.getBlock(),
+                           blockWithReceipts.getReceipts());
 
-    final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
+    final ArgumentCaptor<LogResult> captor =
+        ArgumentCaptor.forClass(LogResult.class);
     verify(subscriptionManager, times(0))
         .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
   }
@@ -276,58 +295,67 @@ public class LogsSubscriptionServiceTest {
     registerSubscriptions(subscription);
 
     final BlockWithReceipts blockWithReceipts = generateBlock(2, 2, 2);
-    blockchain.appendBlock(blockWithReceipts.getBlock(), blockWithReceipts.getReceipts());
+    blockchain.appendBlock(blockWithReceipts.getBlock(),
+                           blockWithReceipts.getReceipts());
 
-    final ArgumentCaptor<LogResult> captor = ArgumentCaptor.forClass(LogResult.class);
+    final ArgumentCaptor<LogResult> captor =
+        ArgumentCaptor.forClass(LogResult.class);
     verify(subscriptionManager, times(0))
         .sendMessage(eq(subscription.getSubscriptionId()), captor.capture());
   }
 
-  private void assertLogResultMatches(
-      final LogResult result,
-      final Block block,
-      final List<TransactionReceipt> receipts,
-      final int txIndex,
-      final int logIndex,
-      final boolean isRemoved) {
-    final Transaction expectedTransaction = block.getBody().getTransactions().get(txIndex);
+  private void assertLogResultMatches(final LogResult result, final Block block,
+                                      final List<TransactionReceipt> receipts,
+                                      final int txIndex, final int logIndex,
+                                      final boolean isRemoved) {
+    final Transaction expectedTransaction =
+        block.getBody().getTransactions().get(txIndex);
     final Log expectedLog = receipts.get(txIndex).getLogs().get(logIndex);
 
     assertThat(result.getLogIndex()).isEqualTo(Quantity.create(logIndex));
-    assertThat(result.getTransactionIndex()).isEqualTo(Quantity.create(txIndex));
-    assertThat(result.getBlockNumber()).isEqualTo(Quantity.create(block.getHeader().getNumber()));
+    assertThat(result.getTransactionIndex())
+        .isEqualTo(Quantity.create(txIndex));
+    assertThat(result.getBlockNumber())
+        .isEqualTo(Quantity.create(block.getHeader().getNumber()));
     assertThat(result.getBlockHash()).isEqualTo(block.getHash().toString());
-    assertThat(result.getTransactionHash()).isEqualTo(expectedTransaction.getHash().toString());
-    assertThat(result.getAddress()).isEqualTo(expectedLog.getLogger().toString());
+    assertThat(result.getTransactionHash())
+        .isEqualTo(expectedTransaction.getHash().toString());
+    assertThat(result.getAddress())
+        .isEqualTo(expectedLog.getLogger().toString());
     assertThat(result.getData()).isEqualTo(expectedLog.getData().toString());
     assertThat(result.getTopics())
-        .isEqualTo(
-            expectedLog.getTopics().stream().map(Bytes::toString).collect(Collectors.toList()));
+        .isEqualTo(expectedLog.getTopics()
+                       .stream()
+                       .map(Bytes::toString)
+                       .collect(Collectors.toList()));
     assertThat(result.isRemoved()).isEqualTo(isRemoved);
   }
 
-  private BlockWithReceipts generateBlock(
-      final int txCount, final int logsPerTx, final int topicsPerLog) {
+  private BlockWithReceipts generateBlock(final int txCount,
+                                          final int logsPerTx,
+                                          final int topicsPerLog) {
     final BlockHeader parent = blockchain.getChainHeadHeader();
-    return generateBlock(parent, txCount, () -> gen.logs(logsPerTx, topicsPerLog));
+    return generateBlock(parent, txCount,
+                         () -> gen.logs(logsPerTx, topicsPerLog));
   }
 
-  private BlockWithReceipts generateBlock(
-      final BlockHeader parentHeader,
-      final int txCount,
-      final int logsPerTx,
-      final int topicsPerLog) {
-    return generateBlock(parentHeader, txCount, () -> gen.logs(logsPerTx, topicsPerLog));
+  private BlockWithReceipts generateBlock(final BlockHeader parentHeader,
+                                          final int txCount,
+                                          final int logsPerTx,
+                                          final int topicsPerLog) {
+    return generateBlock(parentHeader, txCount,
+                         () -> gen.logs(logsPerTx, topicsPerLog));
   }
 
-  private BlockWithReceipts generateBlock(
-      final int txCount, final Supplier<List<Log>> logsSupplier) {
+  private BlockWithReceipts
+  generateBlock(final int txCount, final Supplier<List<Log>> logsSupplier) {
     final BlockHeader parent = blockchain.getChainHeadHeader();
     return generateBlock(parent, txCount, logsSupplier);
   }
 
-  private BlockWithReceipts generateBlock(
-      final BlockHeader parentHeader, final int txCount, final Supplier<List<Log>> logsSupplier) {
+  private BlockWithReceipts
+  generateBlock(final BlockHeader parentHeader, final int txCount,
+                final Supplier<List<Log>> logsSupplier) {
     final List<TransactionReceipt> receipts = new ArrayList<>();
     final List<Log> logs = new ArrayList<>();
     final BlockOptions blockOptions = BlockOptions.create();
@@ -351,21 +379,22 @@ public class LogsSubscriptionServiceTest {
     return createSubscription(Arrays.asList(address), Collections.emptyList());
   }
 
-  private LogsSubscription createSubscription(
-      final List<Address> addresses, final List<List<LogTopic>> logTopics) {
+  private LogsSubscription
+  createSubscription(final List<Address> addresses,
+                     final List<List<LogTopic>> logTopics) {
 
     return new LogsSubscription(
-        nextSubscriptionId.incrementAndGet(),
-        "conn",
-        new FilterParameter(
-            BlockParameter.LATEST, BlockParameter.LATEST, addresses, logTopics, null));
+        nextSubscriptionId.incrementAndGet(), "conn",
+        new FilterParameter(BlockParameter.LATEST, BlockParameter.LATEST,
+                            addresses, logTopics, null));
   }
 
   private void registerSubscriptions(final LogsSubscription... subscriptions) {
     registerSubscriptions(Arrays.asList(subscriptions));
   }
 
-  private void registerSubscriptions(final List<LogsSubscription> subscriptions) {
+  private void
+  registerSubscriptions(final List<LogsSubscription> subscriptions) {
     when(subscriptionManager.subscriptionsOfType(any(), any()))
         .thenReturn(Lists.newArrayList(subscriptions));
   }

@@ -1,40 +1,42 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.ethereum.mainnet;
 
-import org.hyperledger.besu.config.experimental.ExperimentalEIPs;
-import org.hyperledger.besu.ethereum.core.SealableBlockHeader;
-import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
-
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.DigestException;
 import java.security.MessageDigest;
 import java.util.function.BiConsumer;
-
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import org.bouncycastle.jcajce.provider.digest.Keccak;
+import org.hyperledger.besu.config.experimental.ExperimentalEIPs;
+import org.hyperledger.besu.ethereum.core.SealableBlockHeader;
+import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
 
 /** Implementation of EthHash. */
 public final class EthHash {
 
   public static final int HASH_BYTES = 64;
 
-  public static final BigInteger TARGET_UPPER_BOUND = BigInteger.valueOf(2).pow(256);
+  public static final BigInteger TARGET_UPPER_BOUND =
+      BigInteger.valueOf(2).pow(256);
 
   public static final int EPOCH_LENGTH = 30000;
 
@@ -68,25 +70,25 @@ public final class EthHash {
    * @param cache EthHash Cache
    * @param header Truncated BlockHeader hash
    * @param nonce Nonce to use for hashing
-   * @return A byte array holding MixHash in its first 32 bytes and the EthHash result in the in
-   *     bytes 32 to 63
+   * @return A byte array holding MixHash in its first 32 bytes and the EthHash
+   *     result in the in bytes 32 to 63
    */
-  public static byte[] hashimotoLight(
-      final long size, final int[] cache, final byte[] header, final long nonce) {
-    return hashimoto(header, size, nonce, (target, ind) -> calcDatasetItem(target, cache, ind));
+  public static byte[] hashimotoLight(final long size, final int[] cache,
+                                      final byte[] header, final long nonce) {
+    return hashimoto(header, size, nonce,
+                     (target, ind) -> calcDatasetItem(target, cache, ind));
   }
 
   public static byte[] hashimoto(
-      final byte[] header,
-      final long size,
-      final long nonce,
+      final byte[] header, final long size, final long nonce,
       final BiConsumer<byte[], Integer> datasetLookup) {
-    final int n = (int) Long.divideUnsigned(size, MIX_BYTES);
+    final int n = (int)Long.divideUnsigned(size, MIX_BYTES);
     final MessageDigest keccak512 = KECCAK_512.get();
     keccak512.update(header);
     keccak512.update(Longs.toByteArray(Long.reverseBytes(nonce)));
     final byte[] seed = keccak512.digest();
-    final ByteBuffer mixBuffer = ByteBuffer.allocate(MIX_BYTES).order(ByteOrder.LITTLE_ENDIAN);
+    final ByteBuffer mixBuffer =
+        ByteBuffer.allocate(MIX_BYTES).order(ByteOrder.LITTLE_ENDIAN);
     for (int i = 0; i < MIX_BYTES / HASH_BYTES; ++i) {
       mixBuffer.put(seed);
     }
@@ -99,8 +101,9 @@ public final class EthHash {
     final byte[] temp = new byte[MIX_BYTES];
     for (int i = 0; i < ACCESSES; ++i) {
       final int p =
-          Integer.remainderUnsigned(
-              fnv(i ^ readLittleEndianInt(seed, 0), mix[i % (MIX_BYTES / WORD_BYTES)]), n);
+          Integer.remainderUnsigned(fnv(i ^ readLittleEndianInt(seed, 0),
+                                        mix[i % (MIX_BYTES / WORD_BYTES)]),
+                                    n);
       for (int j = 0; j < MIX_BYTES / HASH_BYTES; ++j) {
         datasetLookup.accept(lookupResult, 2 * p + j);
         System.arraycopy(lookupResult, 0, temp, j * HASH_BYTES, HASH_BYTES);
@@ -131,7 +134,8 @@ public final class EthHash {
    * @param cache EthHash Cache
    * @param index Index of the dataset item to calculate
    */
-  public static void calcDatasetItem(final byte[] buffer, final int[] cache, final int index) {
+  public static void calcDatasetItem(final byte[] buffer, final int[] cache,
+                                     final int index) {
     final int rows = cache.length / HASH_WORDS;
     final int[] mixInts = new int[HASH_BYTES / 4];
     final int offset = index % rows * HASH_WORDS;
@@ -142,12 +146,15 @@ public final class EthHash {
     keccak512.update(buffer);
     try {
       keccak512.digest(buffer, 0, HASH_BYTES);
-      ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(mixInts);
+      ByteBuffer.wrap(buffer)
+          .order(ByteOrder.LITTLE_ENDIAN)
+          .asIntBuffer()
+          .get(mixInts);
       for (int i = 0; i < DATASET_PARENTS; ++i) {
         fnvHash(
-            mixInts,
-            cache,
-            Integer.remainderUnsigned(fnv(index ^ i, mixInts[i % 16]), rows) * HASH_WORDS);
+            mixInts, cache,
+            Integer.remainderUnsigned(fnv(index ^ i, mixInts[i % 16]), rows) *
+                HASH_WORDS);
       }
       intToByte(buffer, mixInts);
       keccak512.update(buffer);
@@ -184,7 +191,8 @@ public final class EthHash {
       out.writeLongScalar(header.getBaseFee().get());
     }
     out.endList();
-    return DirectAcyclicGraphSeed.KECCAK_256.get().digest(out.encoded().toArray());
+    return DirectAcyclicGraphSeed.KECCAK_256.get().digest(
+        out.encoded().toArray());
   }
 
   /**
@@ -227,13 +235,11 @@ public final class EthHash {
       for (int j = 0; j < rows; ++j) {
         final int offset = j * HASH_BYTES;
         for (int k = 0; k < HASH_BYTES; ++k) {
-          temp[k] =
-              (byte)
-                  (cache[(j - 1 + rows) % rows * HASH_BYTES + k]
-                      ^ cache[
-                          Integer.remainderUnsigned(readLittleEndianInt(cache, offset), rows)
-                                  * HASH_BYTES
-                              + k]);
+          temp[k] = (byte)(cache[(j - 1 + rows) % rows * HASH_BYTES + k] ^
+                           cache[Integer.remainderUnsigned(
+                                     readLittleEndianInt(cache, offset), rows) *
+                                     HASH_BYTES +
+                                 k]);
         }
         keccak512.update(temp);
         try {
@@ -245,7 +251,10 @@ public final class EthHash {
       }
     }
     final int[] result = new int[cache.length / 4];
-    ByteBuffer.wrap(cache).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(result);
+    ByteBuffer.wrap(cache)
+        .order(ByteOrder.LITTLE_ENDIAN)
+        .asIntBuffer()
+        .get(result);
     return result;
   }
 
@@ -289,13 +298,15 @@ public final class EthHash {
     return true;
   }
 
-  private static int readLittleEndianInt(final byte[] buffer, final int offset) {
-    return Ints.fromBytes(
-        buffer[offset + 3], buffer[offset + 2], buffer[offset + 1], buffer[offset]);
+  private static int readLittleEndianInt(final byte[] buffer,
+                                         final int offset) {
+    return Ints.fromBytes(buffer[offset + 3], buffer[offset + 2],
+                          buffer[offset + 1], buffer[offset]);
   }
 
   private static void intToByte(final byte[] target, final int[] ints) {
-    final ByteBuffer buffer = ByteBuffer.wrap(target).order(ByteOrder.LITTLE_ENDIAN);
+    final ByteBuffer buffer =
+        ByteBuffer.wrap(target).order(ByteOrder.LITTLE_ENDIAN);
     for (final int i : ints) {
       buffer.putInt(i);
     }
@@ -307,7 +318,8 @@ public final class EthHash {
     }
   }
 
-  private static void fnvHash(final int[] mix, final int[] cache, final int offset) {
+  private static void fnvHash(final int[] mix, final int[] cache,
+                              final int offset) {
     for (int i = 0; i < mix.length; i++) {
       mix[i] = fnv(mix[i], cache[offset + i]);
     }

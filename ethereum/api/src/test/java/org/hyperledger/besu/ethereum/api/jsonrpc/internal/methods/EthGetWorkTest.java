@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -17,6 +20,9 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.google.common.io.BaseEncoding;
+import java.util.Optional;
+import org.apache.tuweni.units.bigints.UInt256;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequest;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
@@ -26,11 +32,6 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcSucces
 import org.hyperledger.besu.ethereum.blockcreation.EthHashMiningCoordinator;
 import org.hyperledger.besu.ethereum.mainnet.DirectAcyclicGraphSeed;
 import org.hyperledger.besu.ethereum.mainnet.EthHashSolverInputs;
-
-import java.util.Optional;
-
-import com.google.common.io.BaseEncoding;
-import org.apache.tuweni.units.bigints.UInt256;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,15 +61,14 @@ public class EthGetWorkTest {
   @Test
   public void shouldReturnCorrectResultOnGenesisDAG() {
     final JsonRpcRequestContext request = requestWithParams();
-    final EthHashSolverInputs values =
-        new EthHashSolverInputs(
-            UInt256.fromHexString(hexValue), BaseEncoding.base16().lowerCase().decode(hexValue), 0);
+    final EthHashSolverInputs values = new EthHashSolverInputs(
+        UInt256.fromHexString(hexValue),
+        BaseEncoding.base16().lowerCase().decode(hexValue), 0);
     final String[] expectedValue = {
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "0x0"
-    };
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "0x0"};
     final JsonRpcResponse expectedResponse =
         new JsonRpcSuccessResponse(request.getRequest().getId(), expectedValue);
     when(miningCoordinator.getWorkDefinition()).thenReturn(Optional.of(values));
@@ -80,17 +80,15 @@ public class EthGetWorkTest {
   @Test
   public void shouldReturnCorrectResultOnHighBlockSeed() {
     final JsonRpcRequestContext request = requestWithParams();
-    final EthHashSolverInputs values =
-        new EthHashSolverInputs(
-            UInt256.fromHexString(hexValue),
-            BaseEncoding.base16().lowerCase().decode(hexValue),
-            30000);
+    final EthHashSolverInputs values = new EthHashSolverInputs(
+        UInt256.fromHexString(hexValue),
+        BaseEncoding.base16().lowerCase().decode(hexValue), 30000);
     final String[] expectedValue = {
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "0x" + BaseEncoding.base16().lowerCase().encode(DirectAcyclicGraphSeed.dagSeed(30000)),
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "0x7530"
-    };
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "0x" + BaseEncoding.base16().lowerCase().encode(
+                   DirectAcyclicGraphSeed.dagSeed(30000)),
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "0x7530"};
     final JsonRpcResponse expectedResponse =
         new JsonRpcSuccessResponse(request.getRequest().getId(), expectedValue);
     when(miningCoordinator.getWorkDefinition()).thenReturn(Optional.of(values));
@@ -101,8 +99,8 @@ public class EthGetWorkTest {
   @Test
   public void shouldReturnErrorOnNoneMiningNode() {
     final JsonRpcRequestContext request = requestWithParams();
-    final JsonRpcResponse expectedResponse =
-        new JsonRpcErrorResponse(request.getRequest().getId(), JsonRpcError.NO_MINING_WORK_FOUND);
+    final JsonRpcResponse expectedResponse = new JsonRpcErrorResponse(
+        request.getRequest().getId(), JsonRpcError.NO_MINING_WORK_FOUND);
     when(miningCoordinator.getWorkDefinition()).thenReturn(Optional.empty());
 
     final JsonRpcResponse actualResponse = method.response(request);
@@ -110,6 +108,7 @@ public class EthGetWorkTest {
   }
 
   private JsonRpcRequestContext requestWithParams(final Object... params) {
-    return new JsonRpcRequestContext(new JsonRpcRequest("2.0", ETH_METHOD, params));
+    return new JsonRpcRequestContext(
+        new JsonRpcRequest("2.0", ETH_METHOD, params));
   }
 }
