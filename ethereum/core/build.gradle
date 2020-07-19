@@ -39,6 +39,10 @@ dependencies {
   implementation project(':plugin-api')
   implementation project(':services:kvstore')
 
+  implementation 'daml-on-besu:protobufs:0.0.1-SNAPSHOT'
+  implementation 'com.daml.ledger:participant-state_2.12:100.13.41'
+  implementation 'com.daml.ledger:participant-state-kvutils_2.12:100.13.41'
+  implementation 'com.daml.ledger:participant-state-index_2.12:100.13.41'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.guava:guava'
   implementation 'io.vertx:vertx-core'

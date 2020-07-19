@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -30,14 +33,24 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
+import org.hyperledger.besu.ethereum.core.Hash;
+import org.hyperledger.besu.ethereum.trie.MerklePatriciaTrie;
+import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage;
+import org.hyperledger.besu.plugin.services.storage.KeyValueStorage;
+import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
+import org.hyperledger.besu.util.Subscribers;
 
 public class WorldStateKeyValueStorage implements WorldStateStorage {
 
-  private final Subscribers<NodesAddedListener> nodeAddedListeners = Subscribers.create();
+  private final Subscribers<NodesAddedListener> nodeAddedListeners =
+      Subscribers.create();
   private final KeyValueStorage keyValueStorage;
   private final ReentrantLock lock = new ReentrantLock();
+  private static final Logger LOG = LogManager.getLogger();
 
   public WorldStateKeyValueStorage(final KeyValueStorage keyValueStorage) {
     this.keyValueStorage = keyValueStorage;
@@ -156,7 +169,8 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     }
 
     @Override
-    public Updater putAccountStateTrieNode(final Bytes32 nodeHash, final Bytes node) {
+    public Updater putAccountStateTrieNode(final Bytes32 nodeHash,
+                                           final Bytes node) {
       if (nodeHash.equals(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH)) {
         // Don't save empty nodes
         return this;
@@ -167,7 +181,8 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     }
 
     @Override
-    public Updater putAccountStorageTrieNode(final Bytes32 nodeHash, final Bytes node) {
+    public Updater putAccountStorageTrieNode(final Bytes32 nodeHash,
+                                             final Bytes node) {
       if (nodeHash.equals(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH)) {
         // Don't save empty nodes
         return this;
@@ -181,6 +196,7 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     public void commit() {
       lock.lock();
       try {
+        LOG.debug("commit");
         nodeAddedListeners.forEach(listener -> listener.onNodesAdded(addedNodes));
         transaction.commit();
       } finally {
@@ -191,6 +207,7 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     @Override
     public void rollback() {
       addedNodes.clear();
+      LOG.debug("rollback");
       transaction.rollback();
     }
   }

@@ -1,24 +1,29 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.plugin.services.storage.rocksdb.unsegmented;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.plugin.services.exception.StorageException;
 import org.hyperledger.besu.plugin.services.metrics.OperationTimer;
 import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
 import org.hyperledger.besu.plugin.services.storage.rocksdb.RocksDBMetrics;
-
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.WriteOptions;
@@ -29,8 +34,10 @@ public class RocksDBTransaction implements KeyValueStorageTransaction {
   private final Transaction innerTx;
   private final WriteOptions options;
 
-  RocksDBTransaction(
-      final Transaction innerTx, final WriteOptions options, final RocksDBMetrics metrics) {
+  private static final Logger LOG = LogManager.getLogger();
+
+  RocksDBTransaction(final Transaction innerTx, final WriteOptions options,
+                     final RocksDBMetrics metrics) {
     this.innerTx = innerTx;
     this.options = options;
     this.metrics = metrics;
@@ -38,7 +45,10 @@ public class RocksDBTransaction implements KeyValueStorageTransaction {
 
   @Override
   public void put(final byte[] key, final byte[] value) {
-    try (final OperationTimer.TimingContext ignored = metrics.getWriteLatency().startTimer()) {
+    try (final OperationTimer.TimingContext ignored =
+             metrics.getWriteLatency().startTimer()) {
+      LOG.debug(String.format("Putting key=%s size=%s",
+                              Bytes.of(key).toHexString(), value.length));
       innerTx.put(key, value);
     } catch (final RocksDBException e) {
       throw new StorageException(e);
@@ -47,7 +57,8 @@ public class RocksDBTransaction implements KeyValueStorageTransaction {
 
   @Override
   public void remove(final byte[] key) {
-    try (final OperationTimer.TimingContext ignored = metrics.getRemoveLatency().startTimer()) {
+    try (final OperationTimer.TimingContext ignored =
+             metrics.getRemoveLatency().startTimer()) {
       innerTx.delete(key);
     } catch (final RocksDBException e) {
       throw new StorageException(e);
@@ -56,7 +67,9 @@ public class RocksDBTransaction implements KeyValueStorageTransaction {
 
   @Override
   public void commit() throws StorageException {
-    try (final OperationTimer.TimingContext ignored = metrics.getCommitLatency().startTimer()) {
+    try (final OperationTimer.TimingContext ignored =
+             metrics.getCommitLatency().startTimer()) {
+      LOG.debug("Committing");
       innerTx.commit();
     } catch (final RocksDBException e) {
       throw new StorageException(e);
@@ -68,6 +81,7 @@ public class RocksDBTransaction implements KeyValueStorageTransaction {
   @Override
   public void rollback() {
     try {
+      LOG.debug("Rollback");
       innerTx.rollback();
       metrics.getRollbackCount().inc();
     } catch (final RocksDBException e) {

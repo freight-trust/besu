@@ -24,6 +24,7 @@ plugins {
   id 'com.jfrog.bintray' version '1.8.4'
   id 'com.github.ben-manes.versions' version '0.26.0'
   id 'com.github.hierynomus.license' version '0.15.0'
+  id 'com.google.protobuf' version '0.8.11'
   id 'io.spring.dependency-management' version '1.0.8.RELEASE'
   id 'me.champeau.gradle.jmh' version '0.5.0' apply false
   id 'net.ltgt.errorprone' version '1.1.1'
@@ -94,6 +95,7 @@ allprojects {
   apply plugin: 'io.spring.dependency-management'
   apply plugin: 'jacoco'
   apply plugin: 'net.ltgt.errorprone'
+  apply plugin: 'com.google.protobuf'
   apply from: "${rootDir}/gradle/versions.gradle"
   apply from: "${rootDir}/gradle/check-licenses.gradle"
 
@@ -126,6 +128,8 @@ allprojects {
     maven {url "https://hyperledger-org.bintray.com/besu-repo"}
     maven { url "https://consensys.bintray.com/pegasys-repo" }
     maven { url "https://repo.spring.io/libs-release" }
+    maven { url "https://repository.apache.org/content/repositories/snapshots/" }
+    maven { url "https://digitalassetsdk.bintray.com/DigitalAssetSDK" }
   }
 
   dependencies { errorprone "com.google.errorprone:error_prone_core" }
