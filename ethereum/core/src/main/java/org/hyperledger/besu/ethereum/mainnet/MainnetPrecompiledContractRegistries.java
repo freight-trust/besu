@@ -28,7 +28,11 @@ import org.hyperledger.besu.ethereum.mainnet.precompiles.ECRECPrecompiledContrac
 import org.hyperledger.besu.ethereum.mainnet.precompiles.IDPrecompiledContract;
 import org.hyperledger.besu.ethereum.mainnet.precompiles.RIPEMD160PrecompiledContract;
 import org.hyperledger.besu.ethereum.mainnet.precompiles.SHA256PrecompiledContract;
+<<<<<<< HEAD
 import org.hyperledger.besu.ethereum.mainnet.precompiles.daml.DamlPublicPrecompiledContract;
+=======
+import org.hyperledger.besu.ethereum.mainnet.precompiles.privacy.OnChainPrivacyPrecompiledContract;
+>>>>>>> master
 import org.hyperledger.besu.ethereum.mainnet.precompiles.privacy.PrivacyPrecompiledContract;
 import org.hyperledger.besu.ethereum.vm.GasCalculator;
 
@@ -114,6 +118,7 @@ public abstract class MainnetPrecompiledContractRegistries {
       final PrecompileContractRegistry registry,
       final PrecompiledContractConfiguration precompiledContractConfiguration,
       final int accountVersion) {
+<<<<<<< HEAD
     final Address address = Address.privacyPrecompiled(
         precompiledContractConfiguration.getPrivacyParameters()
             .getPrivacyAddress());
@@ -131,6 +136,23 @@ public abstract class MainnetPrecompiledContractRegistries {
     registry.put(Address.DAML_PUBLIC, accountVersion,
                  new DamlPublicPrecompiledContract(
                      precompiledContractConfiguration.getGasCalculator()));
+=======
+    final Address address =
+        Address.privacyPrecompiled(
+            precompiledContractConfiguration.getPrivacyParameters().getPrivacyAddress());
+    registry.put(
+        address,
+        accountVersion,
+        new PrivacyPrecompiledContract(
+            precompiledContractConfiguration.getGasCalculator(),
+            precompiledContractConfiguration.getPrivacyParameters()));
+    registry.put(
+        Address.ONCHAIN_PRIVACY,
+        accountVersion,
+        new OnChainPrivacyPrecompiledContract(
+            precompiledContractConfiguration.getGasCalculator(),
+            precompiledContractConfiguration.getPrivacyParameters()));
+>>>>>>> master
     return registry;
   }
 }

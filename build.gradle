@@ -125,9 +125,14 @@ allprojects {
     jcenter()
     mavenCentral()
     mavenLocal()
+    maven {url "https://hyperledger-org.bintray.com/besu-repo"}
     maven { url "https://consensys.bintray.com/pegasys-repo" }
+<<<<<<< HEAD
     maven { url "https://repository.apache.org/content/repositories/snapshots/" }
     maven { url "https://digitalassetsdk.bintray.com/DigitalAssetSDK" }
+=======
+    maven { url "https://repo.spring.io/libs-release" }
+>>>>>>> master
   }
 
   dependencies { errorprone "com.google.errorprone:error_prone_core" }
@@ -235,6 +240,9 @@ allprojects {
    *   with the 'include' option above since it is a pattern, but this is a slightly more convenient
    *   option.
    * - 'root.log.level' and 'evm.log.level': allow to control the log level used during the tests.
+   * - 'acctests.keepLogsOfPassingTests': log files of failed acceptance tests are always saved.
+   *    This property additionally keeps the log files of successful tests.
+   *
    */
   test {
     jvmArgs = [
@@ -245,13 +253,16 @@ allprojects {
       '--add-opens',
       'java.base/java.util=ALL-UNNAMED',
       '--add-opens',
-      'java.base/java.util.concurrent=ALL-UNNAMED'
+      'java.base/java.util.concurrent=ALL-UNNAMED',
+      '--add-opens',
+      'java.base/java.util.concurrent.atomic=ALL-UNNAMED'
     ]
     Set toImport = [
       'test.ethereum.include',
       'test.ethereum.state.eip',
       'root.log.level',
-      'evm.log.level'
+      'evm.log.level',
+      'acctests.keepLogsOfPassingTests'
     ]
     for (String name : toImport) {
       if (System.getProperty(name) != null) {
@@ -293,6 +304,7 @@ check.dependsOn('checkPluginAPIChanges', 'checkMavenCoordinateCollisions')
 
 subprojects {
 
+<<<<<<< HEAD
   sourceSets {
     // tell vscode and others where google protobuf plugin puts generated source files
     main.java.srcDirs += 'build/generated/source/proto/main/java'
@@ -303,23 +315,64 @@ subprojects {
         compileClasspath += main.output
         runtimeClasspath += main.output
         srcDir file('src/test-support/java')
+=======
+  if (file('src/test-support').directory) {
+    sourceSets {
+      // test-support can be consumed as a library by other projects in their tests
+      testSupport {
+        java {
+          compileClasspath += main.output
+          runtimeClasspath += main.output
+          srcDir file('src/test-support/java')
+        }
+        resources.srcDir file('src/test-support/resources')
+>>>>>>> master
       }
-      resources.srcDir file('src/test-support/resources')
     }
-    integrationTest {
-      java {
-        compileClasspath += main.output
-        runtimeClasspath += main.output
-        srcDir file('src/integration-test/java')
-      }
-      resources.srcDir file('src/integration-test/resources')
+
+    dependencies {
+      testImplementation sourceSets.testSupport.output
+    }
+
+    task testSupportJar(type: Jar) {
+      archiveBaseName = "${project.name}-support-test"
+      classifier = 'test-support'
+      from sourceSets.testSupport.output
     }
   }
 
-  task testSupportJar(type: Jar) {
-    archiveBaseName = "${project.name}-support-test"
-    classifier = 'test-support'
-    from sourceSets.testSupport.output
+  if (file('src/integration-test').directory) {
+    sourceSets {
+      integrationTest {
+        java {
+          compileClasspath += main.output
+          runtimeClasspath += main.output
+          srcDir file('src/integration-test/java')
+        }
+        resources.srcDir file('src/integration-test/resources')
+      }
+    }
+
+    if (file('src/test-support').directory) {
+      dependencies {
+        integrationTestImplementation sourceSets.testSupport.output
+      }
+    }
+
+    task integrationTest(type: Test, dependsOn: ["compileTestJava"]) {
+      group = "verification"
+      description = "Runs the Besu integration tests"
+
+      jvmArgs = [
+        '--add-opens',
+        'java.base/java.util=ALL-UNNAMED',
+        '--add-opens',
+        'java.base/java.util.concurrent=ALL-UNNAMED'
+      ]
+      testClassesDirs = sourceSets.integrationTest.output.classesDirs
+      classpath = sourceSets.integrationTest.runtimeClasspath
+      outputs.upToDateWhen { false }
+    }
   }
 
   def sourceSetIsPopulated = { sourceSetName ->
@@ -399,27 +452,6 @@ subprojects {
     testSupportArtifacts
   }
 
-
-  dependencies {
-    testImplementation sourceSets.testSupport.output
-    integrationTestImplementation sourceSets.testSupport.output
-  }
-
-  task integrationTest(type: Test, dependsOn: ["compileTestJava"]) {
-    group = "verification"
-    description = "Runs the Besu integration tests"
-
-    jvmArgs = [
-      '--add-opens',
-      'java.base/java.util=ALL-UNNAMED',
-      '--add-opens',
-      'java.base/java.util.concurrent=ALL-UNNAMED'
-    ]
-    testClassesDirs = sourceSets.integrationTest.output.classesDirs
-    classpath = sourceSets.integrationTest.runtimeClasspath
-    outputs.upToDateWhen { false }
-  }
-
   if (file('src/jmh').directory) {
     apply plugin: 'me.champeau.gradle.jmh'
 
@@ -450,14 +482,24 @@ apply plugin: 'application'
 mainClassName = 'org.hyperledger.besu.Besu'
 applicationDefaultJvmArgs = [
   '-Dvertx.disableFileCPResolving=true',
+  // BESU_HOME is replaced by a doFirst block in the run task.
   '-Dbesu.home=BESU_HOME',
   // We shutdown log4j ourselves, as otherwise this shutdown hook runs before our own and whatever
   // happens during shutdown is not logged.
   '-Dlog4j.shutdownHookEnabled=false',
+  // Suppress Java JPMS warnings.  Document the reason for each suppression.
   // Bouncy Castle needs access to sun.security.provider, which is not open by default.
-  // This suppresses an illegal access warning.
   '--add-opens',
-  'java.base/sun.security.provider=ALL-UNNAMED'
+  'java.base/sun.security.provider=ALL-UNNAMED',
+  // Jackson likes to access java.util.OptionalLong's constructor
+  '--add-opens',
+  'java.base/java.util=ALL-UNNAMED',
+  // suppress netty specific module warnings in debug
+  "-Dio.netty.tryReflectionSetAccessible=true",
+  "--add-exports",
+  "java.base/jdk.internal.misc=ALL-UNNAMED",
+  "--add-opens",
+  "java.base/java.nio=ALL-UNNAMED"
 ]
 
 run {
@@ -607,7 +649,17 @@ task checkSpdxHeader(type: CheckSpdxHeader) {
   rootPath = "${projectDir}"
   spdxHeader = "* SPDX-License-Identifier: Apache-2.0"
   filesRegex = "(.*.java)|(.*.groovy)"
-  excludeRegex = "(.*generalstate/GeneralStateRegressionReferenceTest.*)|(.*generalstate/GeneralStateReferenceTest.*)|(.*blockchain/BlockchainReferenceTest.*)|(.*.gradle/.*)|(.*.idea/.*)"
+  excludeRegex = [
+    "(.*/generalstate/GeneralStateRegressionReferenceTest.*)",
+    "(.*/generalstate/GeneralStateReferenceTest.*)",
+    "(.*/blockchain/BlockchainReferenceTest.*)",
+    "(.*/.gradle/.*)",
+    "(.*/.idea/.*)",
+    "(.*/out/.*)",
+    "(.*/build/.*)",
+    "(.*/src/main/generated/.*)",
+  ].join("|")
+
 }
 
 task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {

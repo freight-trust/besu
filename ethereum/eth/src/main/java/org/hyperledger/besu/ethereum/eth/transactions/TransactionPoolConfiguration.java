@@ -14,28 +14,43 @@
  */
 package org.hyperledger.besu.ethereum.eth.transactions;
 
+import org.hyperledger.besu.util.number.Percentage;
+
 import java.util.Objects;
 
 public class TransactionPoolConfiguration {
   public static final int DEFAULT_TX_MSG_KEEP_ALIVE = 60;
   public static final int MAX_PENDING_TRANSACTIONS = 4096;
+  public static final int MAX_PENDING_TRANSACTIONS_HASHES = 4096;
   public static final int DEFAULT_TX_RETENTION_HOURS = 13;
+  public static final Percentage DEFAULT_PRICE_BUMP = Percentage.fromInt(10);
 
   private final int txPoolMaxSize;
+  private final int pooledTransactionHashesSize;
   private final int pendingTxRetentionPeriod;
   private final int txMessageKeepAliveSeconds;
 
+  private final Percentage priceBump;
+
   public TransactionPoolConfiguration(
       final int txPoolMaxSize,
+      final int pooledTransactionHashesSize,
       final int pendingTxRetentionPeriod,
-      final int txMessageKeepAliveSeconds) {
+      final int txMessageKeepAliveSeconds,
+      final Percentage priceBump) {
     this.txPoolMaxSize = txPoolMaxSize;
+    this.pooledTransactionHashesSize = pooledTransactionHashesSize;
     this.pendingTxRetentionPeriod = pendingTxRetentionPeriod;
     this.txMessageKeepAliveSeconds = txMessageKeepAliveSeconds;
+    this.priceBump = priceBump;
   }
 
   public int getTxPoolMaxSize() {
     return txPoolMaxSize;
+  }
+
+  public int getPooledTransactionHashesSize() {
+    return pooledTransactionHashesSize;
   }
 
   public int getPendingTxRetentionPeriod() {
@@ -44,6 +59,10 @@ public class TransactionPoolConfiguration {
 
   public int getTxMessageKeepAliveSeconds() {
     return txMessageKeepAliveSeconds;
+  }
+
+  public Percentage getPriceBump() {
+    return priceBump;
   }
 
   @Override
@@ -57,12 +76,14 @@ public class TransactionPoolConfiguration {
     final TransactionPoolConfiguration that = (TransactionPoolConfiguration) o;
     return txPoolMaxSize == that.txPoolMaxSize
         && Objects.equals(pendingTxRetentionPeriod, that.pendingTxRetentionPeriod)
-        && Objects.equals(txMessageKeepAliveSeconds, that.txMessageKeepAliveSeconds);
+        && Objects.equals(txMessageKeepAliveSeconds, that.txMessageKeepAliveSeconds)
+        && Objects.equals(priceBump, that.priceBump);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(txPoolMaxSize, pendingTxRetentionPeriod, txMessageKeepAliveSeconds);
+    return Objects.hash(
+        txPoolMaxSize, pendingTxRetentionPeriod, txMessageKeepAliveSeconds, priceBump);
   }
 
   @Override
@@ -74,6 +95,8 @@ public class TransactionPoolConfiguration {
         + pendingTxRetentionPeriod
         + ", txMessageKeepAliveSeconds="
         + txMessageKeepAliveSeconds
+        + ", priceBump="
+        + priceBump
         + '}';
   }
 
@@ -85,9 +108,16 @@ public class TransactionPoolConfiguration {
     private int txPoolMaxSize = MAX_PENDING_TRANSACTIONS;
     private int pendingTxRetentionPeriod = DEFAULT_TX_RETENTION_HOURS;
     private Integer txMessageKeepAliveSeconds = DEFAULT_TX_MSG_KEEP_ALIVE;
+    private int pooledTransactionHashesSize = MAX_PENDING_TRANSACTIONS_HASHES;
+    private Percentage priceBump = DEFAULT_PRICE_BUMP;
 
     public Builder txPoolMaxSize(final int txPoolMaxSize) {
       this.txPoolMaxSize = txPoolMaxSize;
+      return this;
+    }
+
+    public Builder pooledTransactionHashesSize(final int pooledTransactionHashesSize) {
+      this.pooledTransactionHashesSize = pooledTransactionHashesSize;
       return this;
     }
 
@@ -101,9 +131,22 @@ public class TransactionPoolConfiguration {
       return this;
     }
 
+    public Builder priceBump(final Percentage priceBump) {
+      this.priceBump = priceBump;
+      return this;
+    }
+
+    public Builder priceBump(final int priceBump) {
+      return priceBump(Percentage.fromInt(priceBump));
+    }
+
     public TransactionPoolConfiguration build() {
       return new TransactionPoolConfiguration(
-          txPoolMaxSize, pendingTxRetentionPeriod, txMessageKeepAliveSeconds);
+          txPoolMaxSize,
+          pooledTransactionHashesSize,
+          pendingTxRetentionPeriod,
+          txMessageKeepAliveSeconds,
+          priceBump);
     }
   }
 }

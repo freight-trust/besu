@@ -72,10 +72,19 @@ public class MainnetMessageCallProcessor extends AbstractMessageProcessor {
   }
 
   @Override
+<<<<<<< HEAD
   protected void codeSuccess(final MessageFrame frame) {
     LOG.trace("Successful message call of {} to {} (Gas remaining: {})",
               frame.getSenderAddress(), frame.getRecipientAddress(),
               frame.getRemainingGas());
+=======
+  protected void codeSuccess(final MessageFrame frame, final OperationTracer operationTracer) {
+    LOG.trace(
+        "Successful message call of {} to {} (Gas remaining: {})",
+        frame.getSenderAddress(),
+        frame.getRecipientAddress(),
+        frame.getRemainingGas());
+>>>>>>> master
     frame.setState(MessageFrame.State.COMPLETED_SUCCESS);
   }
 
@@ -133,6 +142,7 @@ public class MainnetMessageCallProcessor extends AbstractMessageProcessor {
       final Bytes output = contract.compute(frame.getInputData(), frame);
       operationTracer.tracePrecompileCall(frame, gasRequirement, output);
       if (output != null) {
+<<<<<<< HEAD
         if (contract.getName().equals("DamlPublic")) {
           frame.incrementRemainingGas(gasRequirement);
         }
@@ -140,6 +150,11 @@ public class MainnetMessageCallProcessor extends AbstractMessageProcessor {
           // do not decrement the gas requirement for a privacy pre-compile
           // contract call -> leads to discrepancies in receipts root between
           // public and private nodes in a network.
+=======
+        if (contract.getName().equals("Privacy") || contract.getName().equals("OnChainPrivacy")) {
+          // do not decrement the gas requirement for a privacy pre-compile contract call -> leads
+          // to discrepancies in receipts root between public and private nodes in a network.
+>>>>>>> master
           frame.incrementRemainingGas(gasRequirement);
           frame.setState(MessageFrame.State.CODE_EXECUTING);
           return;

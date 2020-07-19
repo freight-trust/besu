@@ -40,6 +40,7 @@ public class PrivateStateKeyValueStorage implements PrivateStateStorage {
   private static final Bytes PRIVACY_GROUP_HEAD_BLOCK_MAP_SUFFIX =
       Bytes.of("PGHEADMAP".getBytes(UTF_8));
   private static final Bytes LEGACY_STATUS_KEY_SUFFIX = Bytes.of("STATUS".getBytes(UTF_8));
+  private static final Bytes ADD_DATA_KEY = Bytes.of("ADDKEY".getBytes(UTF_8));
 
   private final KeyValueStorage keyValueStorage;
 
@@ -49,8 +50,8 @@ public class PrivateStateKeyValueStorage implements PrivateStateStorage {
 
   @Override
   public Optional<PrivateTransactionReceipt> getTransactionReceipt(
-      final Bytes32 blockHash, final Bytes32 txHash) {
-    final Bytes blockHashTxHash = Bytes.concatenate(blockHash, txHash);
+      final Bytes32 blockHash, final Bytes32 pmtHash) {
+    final Bytes blockHashTxHash = Bytes.concatenate(blockHash, pmtHash);
     return get(blockHashTxHash, TX_RECEIPT_SUFFIX)
         .map(b -> PrivateTransactionReceipt.readFrom(new BytesValueRLPInput(b, false)));
   }
@@ -69,23 +70,31 @@ public class PrivateStateKeyValueStorage implements PrivateStateStorage {
   }
 
   @Override
+  public Optional<Bytes32> getAddDataKey(final Bytes32 privacyGroupId) {
+    return get(privacyGroupId, ADD_DATA_KEY).map(Bytes32::wrap);
+  }
+
+  @Override
   public int getSchemaVersion() {
     return get(Bytes.EMPTY, DB_VERSION_KEY).map(Bytes::toInt).orElse(SCHEMA_VERSION_1_0_0);
   }
 
   @Override
   public boolean isEmpty() {
-    return keyValueStorage.getAllKeysThat(containsSuffix(LEGACY_STATUS_KEY_SUFFIX)).isEmpty()
-        && keyValueStorage.getAllKeysThat(containsSuffix(TX_RECEIPT_SUFFIX)).isEmpty()
-        && keyValueStorage.getAllKeysThat(containsSuffix(METADATA_KEY_SUFFIX)).isEmpty();
+    return keyValueStorage
+        .getAllKeysThat(
+            containsSuffix(LEGACY_STATUS_KEY_SUFFIX)
+                .or(containsSuffix(TX_RECEIPT_SUFFIX))
+                .or(containsSuffix(METADATA_KEY_SUFFIX)))
+        .isEmpty();
   }
 
   private Predicate<byte[]> containsSuffix(final Bytes suffix) {
+    final byte[] suffixArray = suffix.toArrayUnsafe();
     return key ->
-        key.length > suffix.toArrayUnsafe().length
+        key.length > suffixArray.length
             && Arrays.equals(
-                Arrays.copyOfRange(key, key.length - suffix.toArrayUnsafe().length, key.length),
-                suffix.toArrayUnsafe());
+                Arrays.copyOfRange(key, key.length - suffixArray.length, key.length), suffixArray);
   }
 
   private Optional<Bytes> get(final Bytes key, final Bytes keySuffix) {
@@ -141,6 +150,13 @@ public class PrivateStateKeyValueStorage implements PrivateStateStorage {
     @Override
     public PrivateStateStorage.Updater putDatabaseVersion(final int version) {
       set(Bytes.EMPTY, DB_VERSION_KEY, Bytes.ofUnsignedInt(version));
+      return this;
+    }
+
+    @Override
+    public PrivateStateStorage.Updater putAddDataKey(
+        final Bytes32 privacyGroupId, final Bytes32 addDataKey) {
+      set(privacyGroupId, ADD_DATA_KEY, addDataKey);
       return this;
     }
 

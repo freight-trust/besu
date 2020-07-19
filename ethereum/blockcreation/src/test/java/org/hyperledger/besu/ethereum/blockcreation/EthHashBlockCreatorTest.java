@@ -41,6 +41,7 @@ import org.hyperledger.besu.util.Subscribers;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Function;
 
 import com.google.common.collect.Lists;
@@ -82,8 +83,12 @@ public class EthHashBlockCreatorTest {
         new PendingTransactions(
             TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
             1,
+            5,
             TestClock.fixed(),
-            metricsSystem);
+            metricsSystem,
+            executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
+            Optional.empty(),
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
 
     final EthHashBlockCreator blockCreator =
         new EthHashBlockCreator(
@@ -95,6 +100,7 @@ public class EthHashBlockCreatorTest {
             gasLimit -> gasLimit,
             solver,
             Wei.ZERO,
+            0.8,
             executionContextTestFixture.getBlockchain().getChainHeadHeader());
 
     // A Hashrate should not exist in the block creator prior to creating a block
@@ -131,8 +137,12 @@ public class EthHashBlockCreatorTest {
         new PendingTransactions(
             TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
             1,
+            5,
             TestClock.fixed(),
-            metricsSystem);
+            metricsSystem,
+            executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
+            Optional.empty(),
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
 
     final EthHashBlockCreator blockCreator =
         new EthHashBlockCreator(
@@ -144,6 +154,7 @@ public class EthHashBlockCreatorTest {
             gasLimit -> gasLimit,
             solver,
             Wei.ZERO,
+            0.8,
             executionContextTestFixture.getBlockchain().getChainHeadHeader());
 
     blockCreator.createBlock(BLOCK_1_TIMESTAMP);
@@ -175,8 +186,12 @@ public class EthHashBlockCreatorTest {
         new PendingTransactions(
             TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
             1,
+            5,
             TestClock.fixed(),
-            metricsSystem);
+            metricsSystem,
+            executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
+            Optional.empty(),
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
 
     final EthHashBlockCreator blockCreator =
         new EthHashBlockCreator(
@@ -188,6 +203,7 @@ public class EthHashBlockCreatorTest {
             gasLimit -> gasLimit,
             solver,
             Wei.ZERO,
+            0.8,
             executionContextTestFixture.getBlockchain().getChainHeadHeader());
 
     final MutableWorldState mutableWorldState =
@@ -235,8 +251,12 @@ public class EthHashBlockCreatorTest {
         new PendingTransactions(
             TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
             1,
+            5,
             TestClock.fixed(),
-            metricsSystem);
+            metricsSystem,
+            executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
+            Optional.empty(),
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
 
     final EthHashBlockCreator blockCreator =
         new EthHashBlockCreator(
@@ -248,6 +268,7 @@ public class EthHashBlockCreatorTest {
             gasLimit -> gasLimit,
             solver,
             Wei.ZERO,
+            0.8,
             executionContextTestFixture.getBlockchain().getChainHeadHeader());
 
     final MutableWorldState mutableWorldState =

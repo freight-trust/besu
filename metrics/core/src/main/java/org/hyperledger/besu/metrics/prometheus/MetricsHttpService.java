@@ -137,17 +137,23 @@ class MetricsHttpService implements MetricsService {
           || (hostHeader.isPresent() && hostIsInWhitelist(hostHeader.get()))) {
         event.next();
       } else {
-        event
-            .response()
-            .setStatusCode(403)
-            .putHeader("Content-Type", "text/plain; charset=utf-8")
-            .end("Host not authorized.");
+        final HttpServerResponse response = event.response();
+        if (!response.closed()) {
+          response
+              .setStatusCode(403)
+              .putHeader("Content-Type", "application/json; charset=utf-8")
+              .end("{\"message\":\"Host not authorized.\"}");
+        }
       }
     };
   }
 
   private Optional<String> getAndValidateHostHeader(final RoutingContext event) {
-    final Iterable<String> splitHostHeader = Splitter.on(':').split(event.request().host());
+    final String hostHeader = event.request().host();
+    if (hostHeader == null) {
+      return Optional.empty();
+    }
+    final Iterable<String> splitHostHeader = Splitter.on(':').split(hostHeader);
     final long hostPieces = stream(splitHostHeader).count();
     if (hostPieces > 1) {
       // If the host contains a colon, verify the host is correctly formed - host [ ":" port ]
@@ -159,8 +165,14 @@ class MetricsHttpService implements MetricsService {
   }
 
   private boolean hostIsInWhitelist(final String hostHeader) {
-    return config.getHostsWhitelist().stream()
-        .anyMatch(whitelistEntry -> whitelistEntry.toLowerCase().equals(hostHeader.toLowerCase()));
+    if (config.getHostsWhitelist().stream()
+        .anyMatch(
+            whitelistEntry -> whitelistEntry.toLowerCase().equals(hostHeader.toLowerCase()))) {
+      return true;
+    } else {
+      LOG.trace("Host not in whitelist: '{}'", hostHeader);
+      return false;
+    }
   }
 
   @Override
@@ -206,11 +218,13 @@ class MetricsHttpService implements MetricsService {
         },
         false,
         (res) -> {
+          if (response.closed()) {
+            // Request for metrics closed before response was generated
+            return;
+          }
           if (res.failed()) {
             LOG.error("Request for metrics failed", res.cause());
             response.setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
-          } else if (response.closed()) {
-            LOG.trace("Request for metrics closed before response was generated");
           } else {
             response.setStatusCode(HttpResponseStatus.OK.code());
             response.putHeader("Content-Type", TextFormat.CONTENT_TYPE_004);

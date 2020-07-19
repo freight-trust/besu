@@ -22,7 +22,7 @@ import static org.hyperledger.besu.controller.BesuController.CACHE_PATH;
 
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
 import org.hyperledger.besu.controller.BesuController;
-import org.hyperledger.besu.crypto.SECP256K1.KeyPair;
+import org.hyperledger.besu.crypto.NodeKey;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.graphql.GraphQLDataFetcherContext;
@@ -35,14 +35,14 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.RpcApi;
 import org.hyperledger.besu.ethereum.api.jsonrpc.health.HealthService;
 import org.hyperledger.besu.ethereum.api.jsonrpc.health.LivenessCheck;
 import org.hyperledger.besu.ethereum.api.jsonrpc.health.ReadinessCheck;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.filter.FilterIdGenerator;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.filter.FilterManager;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.filter.FilterRepository;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.filter.FilterManagerBuilder;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.JsonRpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.methods.JsonRpcMethodsFactory;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.WebSocketConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.WebSocketRequestHandler;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.WebSocketService;
+import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.methods.PrivateWebSocketMethodsFactory;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.methods.WebSocketMethodsFactory;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.SubscriptionManager;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.blockheaders.NewBlockHeadersSubscriptionService;
@@ -51,6 +51,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.pending.
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.pending.PendingTransactionSubscriptionService;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.syncing.SyncingSubscriptionService;
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries;
+import org.hyperledger.besu.ethereum.api.query.PrivacyQueries;
 import org.hyperledger.besu.ethereum.blockcreation.MiningCoordinator;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
@@ -85,6 +86,7 @@ import org.hyperledger.besu.ethereum.permissioning.node.NodePermissioningControl
 import org.hyperledger.besu.ethereum.permissioning.node.PeerPermissionsAdapter;
 import org.hyperledger.besu.ethereum.stratum.StratumServer;
 import org.hyperledger.besu.ethereum.transaction.TransactionSimulator;
+import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
 import org.hyperledger.besu.metrics.ObservableMetricsSystem;
 import org.hyperledger.besu.metrics.prometheus.MetricsConfiguration;
 import org.hyperledger.besu.metrics.prometheus.MetricsService;
@@ -122,7 +124,7 @@ import org.apache.tuweni.bytes.Bytes;
 
 public class RunnerBuilder {
 
-  protected static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger();
 
   private Vertx vertx;
   private BesuController<?> besuController;
@@ -144,6 +146,7 @@ public class RunnerBuilder {
   private GraphQLConfiguration graphQLConfiguration;
   private WebSocketConfiguration webSocketConfiguration;
   private Path dataDir;
+  private Optional<Path> pidPath = Optional.empty();
   private MetricsConfiguration metricsConfiguration;
   private ObservableMetricsSystem metricsSystem;
   private Optional<PermissioningConfiguration> permissioningConfiguration = Optional.empty();
@@ -242,6 +245,11 @@ public class RunnerBuilder {
     return this;
   }
 
+  public RunnerBuilder pidPath(final Path pidPath) {
+    this.pidPath = Optional.ofNullable(pidPath);
+    return this;
+  }
+
   public RunnerBuilder dataDir(final Path dataDir) {
     this.dataDir = dataDir;
     return this;
@@ -304,7 +312,7 @@ public class RunnerBuilder {
       discoveryConfiguration = DiscoveryConfiguration.create().setActive(false);
     }
 
-    final KeyPair keyPair = besuController.getLocalNodeKeyPair();
+    final NodeKey nodeKey = besuController.getNodeKey();
 
     final SubProtocolConfiguration subProtocolConfiguration =
         besuController.getSubProtocolConfiguration();
@@ -341,7 +349,7 @@ public class RunnerBuilder {
         new TransactionSimulator(
             context.getBlockchain(), context.getWorldStateArchive(), protocolSchedule);
 
-    final Bytes localNodeId = keyPair.getPublicKey().getEncodedBytes();
+    final Bytes localNodeId = nodeKey.getPublicKey().getEncodedBytes();
     final Optional<NodePermissioningController> nodePermissioningController =
         buildNodePermissioningController(
             bootnodes, synchronizer, transactionSimulator, localNodeId);
@@ -359,7 +367,7 @@ public class RunnerBuilder {
         (caps) ->
             DefaultP2PNetwork.builder()
                 .vertx(vertx)
-                .keyPair(keyPair)
+                .nodeKey(nodeKey)
                 .config(networkingConfiguration)
                 .peerPermissions(peerPermissions)
                 .metricsSystem(metricsSystem)
@@ -392,8 +400,14 @@ public class RunnerBuilder {
             Optional.of(besuController.getProtocolManager().ethContext().getScheduler()));
 
     final PrivacyParameters privacyParameters = besuController.getPrivacyParameters();
+
     final FilterManager filterManager =
-        createFilterManager(vertx, blockchainQueries, transactionPool);
+        new FilterManagerBuilder()
+            .blockchainQueries(blockchainQueries)
+            .transactionPool(transactionPool)
+            .privacyParameters(privacyParameters)
+            .build();
+    vertx.deployVerticle(filterManager);
 
     final P2PNetwork peerNetwork = networkRunner.getNetwork();
 
@@ -512,7 +526,11 @@ public class RunnerBuilder {
       final SubscriptionManager subscriptionManager =
           createSubscriptionManager(vertx, transactionPool);
 
-      createLogsSubscriptionService(context.getBlockchain(), subscriptionManager);
+      createLogsSubscriptionService(
+          context.getBlockchain(),
+          context.getWorldStateArchive(),
+          subscriptionManager,
+          privacyParameters);
 
       createNewBlockHeadersSubscriptionService(
           context.getBlockchain(), blockchainQueries, subscriptionManager);
@@ -522,7 +540,14 @@ public class RunnerBuilder {
       webSocketService =
           Optional.of(
               createWebsocketService(
-                  vertx, webSocketConfiguration, subscriptionManager, webSocketsJsonRpcMethods));
+                  vertx,
+                  webSocketConfiguration,
+                  subscriptionManager,
+                  webSocketsJsonRpcMethods,
+                  privacyParameters,
+                  protocolSchedule,
+                  blockchainQueries,
+                  transactionPool));
     }
 
     Optional<MetricsService> metricsService = Optional.empty();
@@ -541,6 +566,7 @@ public class RunnerBuilder {
         metricsService,
         besuController,
         dataDir,
+        pidPath,
         autoLogBloomCaching ? blockchainQueries.getTransactionLogBloomCacher() : Optional.empty(),
         context.getBlockchain());
   }
@@ -623,17 +649,6 @@ public class RunnerBuilder {
     return fixedNodes;
   }
 
-  private FilterManager createFilterManager(
-      final Vertx vertx,
-      final BlockchainQueries blockchainQueries,
-      final TransactionPool transactionPool) {
-    final FilterManager filterManager =
-        new FilterManager(
-            blockchainQueries, transactionPool, new FilterIdGenerator(), new FilterRepository());
-    vertx.deployVerticle(filterManager);
-    return filterManager;
-  }
-
   private Map<String, JsonRpcMethod> jsonRpcMethods(
       final ProtocolSchedule<?> protocolSchedule,
       final BesuController<?> besuController,
@@ -697,11 +712,31 @@ public class RunnerBuilder {
   }
 
   private void createLogsSubscriptionService(
-      final Blockchain blockchain, final SubscriptionManager subscriptionManager) {
-    final LogsSubscriptionService logsSubscriptionService =
-        new LogsSubscriptionService(subscriptionManager);
+      final Blockchain blockchain,
+      final WorldStateArchive worldStateArchive,
+      final SubscriptionManager subscriptionManager,
+      final PrivacyParameters privacyParameters) {
 
+    Optional<PrivacyQueries> privacyQueries = Optional.empty();
+    if (privacyParameters.isEnabled()) {
+      final BlockchainQueries blockchainQueries =
+          new BlockchainQueries(blockchain, worldStateArchive);
+      privacyQueries =
+          Optional.of(
+              new PrivacyQueries(
+                  blockchainQueries, privacyParameters.getPrivateWorldStateReader()));
+    }
+
+    final LogsSubscriptionService logsSubscriptionService =
+        new LogsSubscriptionService(subscriptionManager, privacyQueries);
+
+    // monitoring public logs
     blockchain.observeLogs(logsSubscriptionService);
+
+    // monitoring private logs
+    if (privacyParameters.isEnabled()) {
+      blockchain.observeBlockAdded(logsSubscriptionService::checkPrivateLogs);
+    }
   }
 
   private void createSyncingSubscriptionService(
@@ -723,9 +758,27 @@ public class RunnerBuilder {
       final Vertx vertx,
       final WebSocketConfiguration configuration,
       final SubscriptionManager subscriptionManager,
-      final Map<String, JsonRpcMethod> jsonRpcMethods) {
+      final Map<String, JsonRpcMethod> jsonRpcMethods,
+      final PrivacyParameters privacyParameters,
+      final ProtocolSchedule<?> protocolSchedule,
+      final BlockchainQueries blockchainQueries,
+      final TransactionPool transactionPool) {
+
     final WebSocketMethodsFactory websocketMethodsFactory =
         new WebSocketMethodsFactory(subscriptionManager, jsonRpcMethods);
+
+    if (privacyParameters.isEnabled()) {
+      final PrivateWebSocketMethodsFactory privateWebSocketMethodsFactory =
+          new PrivateWebSocketMethodsFactory(
+              privacyParameters,
+              subscriptionManager,
+              protocolSchedule,
+              blockchainQueries,
+              transactionPool);
+
+      privateWebSocketMethodsFactory.methods().forEach(websocketMethodsFactory::addMethods);
+    }
+
     final WebSocketRequestHandler websocketRequestHandler =
         new WebSocketRequestHandler(vertx, websocketMethodsFactory.methods());
 

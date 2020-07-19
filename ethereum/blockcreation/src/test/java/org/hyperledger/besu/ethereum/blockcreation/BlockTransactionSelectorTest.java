@@ -38,6 +38,7 @@ import org.hyperledger.besu.ethereum.core.TransactionTestFixture;
 import org.hyperledger.besu.ethereum.core.Wei;
 import org.hyperledger.besu.ethereum.core.WorldState;
 import org.hyperledger.besu.ethereum.core.WorldUpdater;
+import org.hyperledger.besu.ethereum.core.fees.TransactionPriceCalculator;
 import org.hyperledger.besu.ethereum.difficulty.fixed.FixedDifficultyProtocolSchedule;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
@@ -68,13 +69,17 @@ public class BlockTransactionSelectorTest {
   private static final KeyPair keyPair = KeyPair.generate();
   private final MetricsSystem metricsSystem = new NoOpMetricsSystem();
 
+  private final Blockchain blockchain = new TestBlockchain();
   private final PendingTransactions pendingTransactions =
       new PendingTransactions(
           TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
           5,
+          5,
           TestClock.fixed(),
-          metricsSystem);
-  private final Blockchain blockchain = new TestBlockchain();
+          metricsSystem,
+          blockchain::getChainHeadHeader,
+          Optional.empty(),
+          TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
   private final MutableWorldState worldState = InMemoryStorageProvider.createInMemoryWorldState();
   private final Supplier<Boolean> isCancelled = () -> false;
   private final TransactionProcessor transactionProcessor = mock(TransactionProcessor.class);
@@ -111,15 +116,18 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final BlockTransactionSelector.TransactionSelectionResults results =
         selector.buildTransactionListForBlock();
 
     assertThat(results.getTransactions().size()).isEqualTo(0);
     assertThat(results.getReceipts().size()).isEqualTo(0);
-    assertThat(results.getCumulativeGasUsed()).isEqualTo(0);
+    assertThat(results.getFrontierCumulativeGasUsed()).isEqualTo(0);
   }
 
   @Test
@@ -131,7 +139,7 @@ public class BlockTransactionSelectorTest {
             any(), any(), any(), eq(transaction), any(), any(), anyBoolean(), any()))
         .thenReturn(
             MainnetTransactionProcessor.Result.failed(
-                5, ValidationResult.valid(), Optional.empty()));
+                0, 5, ValidationResult.valid(), Optional.empty()));
 
     // The block should fit 3 transactions only
     final ProcessableBlockHeader blockHeader = createBlockWithGasLimit(5000);
@@ -147,8 +155,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final BlockTransactionSelector.TransactionSelectionResults results =
         selector.buildTransactionListForBlock();
@@ -156,7 +167,7 @@ public class BlockTransactionSelectorTest {
     assertThat(results.getTransactions().size()).isEqualTo(1);
     Assertions.assertThat(results.getTransactions()).contains(transaction);
     assertThat(results.getReceipts().size()).isEqualTo(1);
-    assertThat(results.getCumulativeGasUsed()).isEqualTo(95L);
+    assertThat(results.getFrontierCumulativeGasUsed()).isEqualTo(95L);
   }
 
   @Test
@@ -172,7 +183,7 @@ public class BlockTransactionSelectorTest {
             any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(
             MainnetTransactionProcessor.Result.successful(
-                new ArrayList<>(), 0, Bytes.EMPTY, ValidationResult.valid()));
+                new ArrayList<>(), 0, 0, Bytes.EMPTY, ValidationResult.valid()));
     when(transactionProcessor.processTransaction(
             any(),
             any(),
@@ -201,8 +212,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final BlockTransactionSelector.TransactionSelectionResults results =
         selector.buildTransactionListForBlock();
@@ -210,7 +224,7 @@ public class BlockTransactionSelectorTest {
     assertThat(results.getTransactions().size()).isEqualTo(4);
     assertThat(results.getTransactions().contains(transactionsToInject.get(1))).isFalse();
     assertThat(results.getReceipts().size()).isEqualTo(4);
-    assertThat(results.getCumulativeGasUsed()).isEqualTo(400);
+    assertThat(results.getFrontierCumulativeGasUsed()).isEqualTo(400);
   }
 
   @Test
@@ -227,7 +241,7 @@ public class BlockTransactionSelectorTest {
             any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(
             MainnetTransactionProcessor.Result.successful(
-                new ArrayList<>(), 0, Bytes.EMPTY, ValidationResult.valid()));
+                new ArrayList<>(), 0, 0, Bytes.EMPTY, ValidationResult.valid()));
 
     final ProcessableBlockHeader blockHeader = createBlockWithGasLimit(301);
 
@@ -242,8 +256,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final BlockTransactionSelector.TransactionSelectionResults results =
         selector.buildTransactionListForBlock();
@@ -252,7 +269,7 @@ public class BlockTransactionSelectorTest {
 
     assertThat(results.getTransactions().containsAll(transactionsToInject.subList(0, 3))).isTrue();
     assertThat(results.getReceipts().size()).isEqualTo(3);
-    assertThat(results.getCumulativeGasUsed()).isEqualTo(300);
+    assertThat(results.getFrontierCumulativeGasUsed()).isEqualTo(300);
 
     // Ensure receipts have the correct cumulative gas
     Assertions.assertThat(results.getReceipts().get(0).getCumulativeGasUsed()).isEqualTo(100);
@@ -274,8 +291,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.of(6),
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final Transaction tx = createTransaction(1);
     pendingTransactions.addRemoteTransaction(tx);
@@ -295,7 +315,7 @@ public class BlockTransactionSelectorTest {
             any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(
             MainnetTransactionProcessor.Result.successful(
-                new ArrayList<>(), 0, Bytes.EMPTY, ValidationResult.valid()));
+                new ArrayList<>(), 0, 0, Bytes.EMPTY, ValidationResult.valid()));
 
     final Address miningBeneficiary = AddressHelpers.ofValue(1);
     final BlockTransactionSelector selector =
@@ -307,8 +327,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final TransactionTestFixture txTestFixture = new TransactionTestFixture();
     // Add 3 transactions to the Pending Transactions, 79% of block, 100% of block and 10% of block
@@ -349,7 +372,7 @@ public class BlockTransactionSelectorTest {
             any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(
             MainnetTransactionProcessor.Result.successful(
-                new ArrayList<>(), 0, Bytes.EMPTY, ValidationResult.valid()));
+                new ArrayList<>(), 0, 0, Bytes.EMPTY, ValidationResult.valid()));
 
     final Address miningBeneficiary = AddressHelpers.ofValue(1);
     final BlockTransactionSelector selector =
@@ -361,8 +384,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final TransactionTestFixture txTestFixture = new TransactionTestFixture();
     // Add 4 transactions to the Pending Transactions 15% (ok), 79% (ok), 25% (too large), 10%
@@ -419,8 +445,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final TransactionTestFixture txTestFixture = new TransactionTestFixture();
     final Transaction validTransaction =
@@ -442,7 +471,7 @@ public class BlockTransactionSelectorTest {
             any()))
         .thenReturn(
             MainnetTransactionProcessor.Result.successful(
-                new ArrayList<>(), 10000, Bytes.EMPTY, ValidationResult.valid()));
+                new ArrayList<>(), 2000, 10000, Bytes.EMPTY, ValidationResult.valid()));
     when(transactionProcessor.processTransaction(
             eq(blockchain),
             any(WorldUpdater.class),
@@ -499,8 +528,11 @@ public class BlockTransactionSelectorTest {
             blockHeader,
             this::createReceipt,
             Wei.ZERO,
+            0.8,
             isCancelled,
-            miningBeneficiary);
+            miningBeneficiary,
+            TransactionPriceCalculator.frontier(),
+            Optional.empty());
 
     final BlockTransactionSelector.TransactionSelectionResults results =
         selector.buildTransactionListForBlock();
