@@ -1,40 +1,42 @@
 /*
  * Copyright 2020 Blockchain Technology Partners.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.ethereum.mainnet.precompiles.daml;
 
-import org.hyperledger.besu.crypto.Hash;
-import org.hyperledger.besu.ethereum.core.Address;
-
-import java.math.BigInteger;
-
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlLogEntryId;
 import com.daml.ledger.participant.state.kvutils.DamlKvutils.DamlStateKey;
 import com.google.protobuf.ByteString;
+import java.math.BigInteger;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
+import org.hyperledger.besu.crypto.Hash;
+import org.hyperledger.besu.ethereum.core.Address;
 
 /** Utility class dealing with DAML namespace functions and values. */
 public final class Namespace {
   /**
-   * An ethereum address is 20 bytes represented as a hexadecimal string with a "0x" prefix, hence
-   * 42 characters in length.
+   * An ethereum address is 20 bytes represented as a hexadecimal string with a
+   * "0x" prefix, hence 42 characters in length.
    */
   public static final int ADDRESS_STRING_LENGTH = Address.SIZE * 2;
 
-  public static final int ADDRESS_HEX_STRING_LENGTH = ADDRESS_STRING_LENGTH + "0x".length();
+  public static final int ADDRESS_HEX_STRING_LENGTH =
+      ADDRESS_STRING_LENGTH + "0x".length();
 
   /** The size of an ethereum storage slot. */
   public static final int STORAGE_SLOT_SIZE = Bytes32.SIZE;
@@ -44,8 +46,8 @@ public final class Namespace {
       String.format("%02x", Address.DAML_PUBLIC.toBigInteger());
 
   /**
-   * Enumeration that maps a DAML key type to a 4-hexadecimal-character ethereum storage root
-   * address.
+   * Enumeration that maps a DAML key type to a 4-hexadecimal-character ethereum
+   * storage root address.
    */
   public enum DamlKeyType {
     /** DAML state value. */
@@ -60,26 +62,25 @@ public final class Namespace {
     }
 
     /**
-     * Return the 4-hexadecimal-character etheruem storage root address for this DAML key type.
+     * Return the 4-hexadecimal-character etheruem storage root address for this
+     * DAML key type.
      *
      * @return DAML root address
      */
-    public String rootAddress() {
-      return rootAddress;
-    }
+    public String rootAddress() { return rootAddress; }
   }
 
   /**
-   * Return the 2-hexadecimal-character ethereum address prefix of the DAML precompiled contract.
+   * Return the 2-hexadecimal-character ethereum address prefix of the DAML
+   * precompiled contract.
    *
    * @return the ethereum address prefix of the DAML precompiled contract
    */
-  public static String getDamlPublicAddress() {
-    return DAML_PUBLIC_ADDRESS;
-  }
+  public static String getDamlPublicAddress() { return DAML_PUBLIC_ADDRESS; }
 
   /**
-   * Return a 256-bit ethereum storage address given a DAML storage key and data.
+   * Return a 256-bit ethereum storage address given a DAML storage key and
+   * data.
    *
    * @param key the DAML storage key
    * @param data the data
@@ -89,19 +90,22 @@ public final class Namespace {
     String hash = hashToHexString(getHash(data));
 
     // use only the last 28 bytes of the hash to allow room for the namespace
-    final int begin = hash.length() - (STORAGE_SLOT_SIZE * 2) + key.rootAddress().length();
+    final int begin =
+        hash.length() - (STORAGE_SLOT_SIZE * 2) + key.rootAddress().length();
     hash = hash.substring(begin);
     return UInt256.fromHexString(key.rootAddress() + hash);
   }
 
   /**
-   * Return a 256-bit ethereum storage address given a DAML storage key and data.
+   * Return a 256-bit ethereum storage address given a DAML storage key and
+   * data.
    *
    * @param key the DAML storage key
    * @param data the data
    * @return 256-bit ethereum storage slot address
    */
-  public static UInt256 makeAddress(final DamlKeyType key, final ByteString data) {
+  public static UInt256 makeAddress(final DamlKeyType key,
+                                    final ByteString data) {
     return makeAddress(key, data.toByteArray());
   }
 
@@ -121,7 +125,8 @@ public final class Namespace {
    * @param entryId the log entry Id
    * @return the address
    */
-  public static UInt256 makeDamlLogEntryIdAddress(final DamlLogEntryId entryId) {
+  public static UInt256
+  makeDamlLogEntryIdAddress(final DamlLogEntryId entryId) {
     return makeAddress(DamlKeyType.LOG, entryId.toByteString());
   }
 
@@ -136,7 +141,8 @@ public final class Namespace {
   }
 
   /**
-   * Return the 64-character hexadecimal string representation of a SHA-256 hash.
+   * Return the 64-character hexadecimal string representation of a SHA-256
+   * hash.
    *
    * @param input the hash
    * @return the hexadecimal string representation of the hash

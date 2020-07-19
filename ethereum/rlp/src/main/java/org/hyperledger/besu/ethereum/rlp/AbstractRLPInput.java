@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -21,7 +24,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.function.Function;
-
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.bytes.MutableBytes32;
@@ -34,31 +36,33 @@ abstract class AbstractRLPInput implements RLPInput {
   protected long size; // The number of bytes in this rlp-encoded byte string
 
   // Information on the item the input currently is at (next thing to read).
-  protected long
-      currentItem; // Offset in value to the beginning of the item (or value.size() if done)
+  protected long currentItem; // Offset in value to the beginning of the item
+                              // (or value.size() if done)
   private RLPDecodingHelpers.Kind currentKind; // Kind of the item.
-  private long currentPayloadOffset; // Offset to the beginning of the current item payload.
-  private int currentPayloadSize; // Size of the current item payload.
+  private long currentPayloadOffset; // Offset to the beginning of the current
+                                     // item payload.
+  private int currentPayloadSize;    // Size of the current item payload.
 
-  // Information regarding opened list. The depth is how many list deep we are, and endOfListOffset
-  // holds the offset in value at which each list ends (indexed by depth). Allows to know if we're
-  // at the end of our current list, and if there is any unfinished one.
+  // Information regarding opened list. The depth is how many list deep we are,
+  // and endOfListOffset holds the offset in value at which each list ends
+  // (indexed by depth). Allows to know if we're at the end of our current list,
+  // and if there is any unfinished one.
   private int depth;
   private long[] endOfListOffset = new long[4];
 
-  AbstractRLPInput(final boolean lenient) {
-    this.lenient = lenient;
-  }
+  AbstractRLPInput(final boolean lenient) { this.lenient = lenient; }
 
-  protected void init(final long inputSize, final boolean shouldFitInputSizeExactly) {
+  protected void init(final long inputSize,
+                      final boolean shouldFitInputSizeExactly) {
     if (inputSize == 0) {
       return;
     }
 
     currentItem = 0;
-    // Initially set the size to the input as prepareCurrentItem() needs it. Once we've prepared the
-    // top level item, we know where that item ends exactly and can update the size to that more
-    // precise value (which basically mean we'll throw errors on malformed inputs potentially
+    // Initially set the size to the input as prepareCurrentItem() needs it.
+    // Once we've prepared the top level item, we know where that item ends
+    // exactly and can update the size to that more precise value (which
+    // basically mean we'll throw errors on malformed inputs potentially
     // sooner).
     size = inputSize;
     prepareCurrentItem();
@@ -66,12 +70,13 @@ abstract class AbstractRLPInput implements RLPInput {
       size = nextItem();
     }
 
-    // No matter what, if the first item advertise a payload ending after the end of the input, that
-    // input is corrupted.
+    // No matter what, if the first item advertise a payload ending after the
+    // end of the input, that input is corrupted.
     if (size > inputSize) {
-      // Our error message include a snippet of the input and that code assume size is not set
-      // outside of the input, and that's exactly the case we're testing, so resetting the size
-      // simply for the sake of the error being properly generated.
+      // Our error message include a snippet of the input and that code assume
+      // size is not set outside of the input, and that's exactly the case we're
+      // testing, so resetting the size simply for the sake of the error being
+      // properly generated.
       final long itemEnd = size;
       size = inputSize;
       throw corrupted(
@@ -105,16 +110,16 @@ abstract class AbstractRLPInput implements RLPInput {
   protected abstract long getLong(long offset);
 
   /**
-   * Sets the input to the item provided (an offset to the beginning of an item) and check this is
-   * valid.
+   * Sets the input to the item provided (an offset to the beginning of an item)
+   * and check this is valid.
    *
    * @param item the value to which the current item is to be set.
    */
   protected void setTo(final long item) {
     currentItem = item;
     if (currentItem >= size) {
-      // Setting somewhat safe values so that multiple calls to setTo(nextItem()) don't do anything
-      // even when at the end.
+      // Setting somewhat safe values so that multiple calls to
+      // setTo(nextItem()) don't do anything even when at the end.
       currentKind = null;
       currentPayloadOffset = item;
       currentPayloadSize = 0;
@@ -125,29 +130,29 @@ abstract class AbstractRLPInput implements RLPInput {
   }
 
   private void prepareCurrentItem() {
-    // Sets the kind of the item, the offset at which his payload starts and the size of this
-    // payload.
+    // Sets the kind of the item, the offset at which his payload starts and the
+    // size of this payload.
     try {
       RLPDecodingHelpers.RLPElementMetadata elementMetadata =
-          RLPDecodingHelpers.rlpElementMetadata(this::inputByte, size, currentItem);
+          RLPDecodingHelpers.rlpElementMetadata(this::inputByte, size,
+                                                currentItem);
       currentKind = elementMetadata.kind;
       currentPayloadOffset = elementMetadata.payloadStart;
       currentPayloadSize = elementMetadata.payloadSize;
     } catch (RLPException exception) {
       String message =
-          String.format(
-              exception.getMessage() + getErrorMessageSuffix(), getErrorMessageSuffixParams());
+          String.format(exception.getMessage() + getErrorMessageSuffix(),
+                        getErrorMessageSuffixParams());
       throw new RLPException(message, exception);
     }
   }
 
   private void validateCurrentItem() {
     if (currentKind == RLPDecodingHelpers.Kind.SHORT_ELEMENT) {
-      // Validate that a single byte SHORT_ELEMENT payload is not <= 0x7F. If it is, is should have
-      // been written as a BYTE_ELEMENT.
-      if (currentPayloadSize == 1
-          && currentPayloadOffset < size
-          && (payloadByte(0) & 0xFF) <= 0x7F) {
+      // Validate that a single byte SHORT_ELEMENT payload is not <= 0x7F. If it
+      // is, is should have been written as a BYTE_ELEMENT.
+      if (currentPayloadSize == 1 && currentPayloadOffset < size &&
+          (payloadByte(0) & 0xFF) <= 0x7F) {
         throwMalformed(
             "Malformed RLP item: single byte value 0x%s should have been "
                 + "written without a prefix",
@@ -157,25 +162,25 @@ abstract class AbstractRLPInput implements RLPInput {
 
     if (currentPayloadSize > 0 && currentPayloadOffset >= size) {
       throw corrupted(
-          "Invalid RLP item: payload should start at offset %d but input has only " + "%d bytes",
+          "Invalid RLP item: payload should start at offset %d but input has only "
+              + "%d bytes",
           currentPayloadOffset, size);
     }
     if (size - currentPayloadOffset < currentPayloadSize) {
       throw corrupted(
           "Invalid RLP item: payload starting at byte %d should be %d bytes long, but input "
               + "has only %d bytes from that offset",
-          currentPayloadOffset, currentPayloadSize, size - currentPayloadOffset);
+          currentPayloadOffset, currentPayloadSize,
+          size - currentPayloadOffset);
     }
   }
 
-  private long nextItem() {
-    return currentPayloadOffset + currentPayloadSize;
-  }
+  private long nextItem() { return currentPayloadOffset + currentPayloadSize; }
 
   @Override
   public boolean isDone() {
-    // The input is done if we're out of input, but also if we've called leaveList() an appropriate
-    // amount of times.
+    // The input is done if we're out of input, but also if we've called
+    // leaveList() an appropriate amount of times.
     return currentItem >= size && depth == 0;
   }
 
@@ -190,10 +195,12 @@ abstract class AbstractRLPInput implements RLPInput {
   }
 
   private void throwMalformed(final String msg, final Object... params) {
-    if (!lenient) throw new MalformedRLPInputException(errorMsg(msg, params));
+    if (!lenient)
+      throw new MalformedRLPInputException(errorMsg(msg, params));
   }
 
-  private CorruptedRLPInputException corrupted(final String msg, final Object... params) {
+  private CorruptedRLPInputException corrupted(final String msg,
+                                               final Object... params) {
     throw new CorruptedRLPInputException(errorMsg(msg, params));
   }
 
@@ -201,13 +208,14 @@ abstract class AbstractRLPInput implements RLPInput {
     throw new RLPException(errorMsg(msg, params));
   }
 
-  private RLPException error(final Throwable cause, final String msg, final Object... params) {
+  private RLPException error(final Throwable cause, final String msg,
+                             final Object... params) {
     throw new RLPException(errorMsg(msg, params), cause);
   }
 
   private String errorMsg(final String message, final Object... params) {
-    return String.format(
-        message + getErrorMessageSuffix(), concatParams(params, getErrorMessageSuffixParams()));
+    return String.format(message + getErrorMessageSuffix(),
+                         concatParams(params, getErrorMessageSuffixParams()));
   }
 
   private String getErrorMessageSuffix() {
@@ -219,19 +227,19 @@ abstract class AbstractRLPInput implements RLPInput {
     final long end = Math.min(size, nextItem());
     final long realStart = Math.max(0, start - 4);
     final long realEnd = Math.min(size, end + 4);
-    return new Object[] {
-      start,
-      end,
-      realStart == 0 ? "" : "...",
-      hex(realStart, start),
-      hex(start, end),
-      hex(end, realEnd),
-      realEnd == size ? "" : "..."
-    };
+    return new Object[] {start,
+                         end,
+                         realStart == 0 ? "" : "...",
+                         hex(realStart, start),
+                         hex(start, end),
+                         hex(end, realEnd),
+                         realEnd == size ? "" : "..."};
   }
 
-  private static Object[] concatParams(final Object[] initial, final Object... others) {
-    final Object[] params = Arrays.copyOf(initial, initial.length + others.length);
+  private static Object[] concatParams(final Object[] initial,
+                                       final Object... others) {
+    final Object[] params =
+        Arrays.copyOf(initial, initial.length + others.length);
     System.arraycopy(others, 0, params, initial.length, others.length);
     return params;
   }
@@ -290,7 +298,7 @@ abstract class AbstractRLPInput implements RLPInput {
     long res = 0;
     int shift = 0;
     for (int i = 0; i < currentPayloadSize; i++) {
-      res |= ((long) payloadByte(currentPayloadSize - i - 1) & 0xFF) << shift;
+      res |= ((long)payloadByte(currentPayloadSize - i - 1) & 0xFF) << shift;
       shift += 8;
     }
     if (res < 0) {
@@ -316,7 +324,8 @@ abstract class AbstractRLPInput implements RLPInput {
   @Override
   public BigInteger readBigIntegerScalar() {
     checkScalar("arbitrary precision scalar");
-    final BigInteger res = getUnsignedBigInteger(currentPayloadOffset, currentPayloadSize);
+    final BigInteger res =
+        getUnsignedBigInteger(currentPayloadOffset, currentPayloadSize);
     setTo(nextItem());
     return res;
   }
@@ -345,7 +354,7 @@ abstract class AbstractRLPInput implements RLPInput {
   @Override
   public short readShort() {
     checkElt("2-byte short", 2);
-    final short s = (short) ((payloadByte(0) << 8) | (payloadByte(1) & 0xFF));
+    final short s = (short)((payloadByte(0) << 8) | (payloadByte(1) & 0xFF));
     setTo(nextItem());
     return s;
   }
@@ -371,7 +380,8 @@ abstract class AbstractRLPInput implements RLPInput {
     checkElt("inet address");
     if (currentPayloadSize != 4 && currentPayloadSize != 16) {
       throw error(
-          "Cannot read an inet address, current element is %d bytes long", currentPayloadSize);
+          "Cannot read an inet address, current element is %d bytes long",
+          currentPayloadSize);
     }
     final byte[] address = new byte[currentPayloadSize];
     for (int i = 0; i < currentPayloadSize; i++) {
@@ -381,8 +391,9 @@ abstract class AbstractRLPInput implements RLPInput {
     try {
       return InetAddress.getByAddress(address);
     } catch (final UnknownHostException e) {
-      // InetAddress.getByAddress() only throws for an address of illegal length, and we have
-      // validated that length already, this this genuinely shouldn't throw.
+      // InetAddress.getByAddress() only throws for an address of illegal
+      // length, and we have validated that length already, this this genuinely
+      // shouldn't throw.
       throw new AssertionError(e);
     }
   }
@@ -416,10 +427,12 @@ abstract class AbstractRLPInput implements RLPInput {
   @Override
   public RLPInput readAsRlp() {
     if (currentItem >= size) {
-      throw error("Cannot read current element as RLP, input is fully consumed");
+      throw error(
+          "Cannot read current element as RLP, input is fully consumed");
     }
     final long next = nextItem();
-    final RLPInput res = RLP.input(inputSlice(currentItem, Math.toIntExact(next - currentItem)));
+    final RLPInput res =
+        RLP.input(inputSlice(currentItem, Math.toIntExact(next - currentItem)));
     setTo(next);
     return res;
   }
@@ -430,26 +443,31 @@ abstract class AbstractRLPInput implements RLPInput {
   }
 
   /**
-   * Enters the list, but does not return the number of item of the entered list. This prevents
-   * bouncing all around the file to read values that are probably not even used.
+   * Enters the list, but does not return the number of item of the entered
+   * list. This prevents bouncing all around the file to read values that are
+   * probably not even used.
    *
    * @see #enterList()
    * @param skipCount true if the element count is not required.
-   * @return -1 if skipCount==true, otherwise, the number of item of the entered list.
+   * @return -1 if skipCount==true, otherwise, the number of item of the entered
+   *     list.
    */
   public int enterList(final boolean skipCount) {
     if (currentItem >= size) {
       throw error("Cannot enter a lists, input is fully consumed");
     }
     if (!currentKind.isList()) {
-      throw error("Expected current item to be a list, but it is: " + currentKind);
+      throw error("Expected current item to be a list, but it is: " +
+                  currentKind);
     }
 
     ++depth;
     if (depth > endOfListOffset.length) {
-      endOfListOffset = Arrays.copyOf(endOfListOffset, (endOfListOffset.length * 3) / 2);
+      endOfListOffset =
+          Arrays.copyOf(endOfListOffset, (endOfListOffset.length * 3) / 2);
     }
-    // The first list element is the beginning of the payload. It's end is the end of this item.
+    // The first list element is the beginning of the payload. It's end is the
+    // end of this item.
     final long listStart = currentPayloadOffset;
     final long listEnd = nextItem();
 
@@ -492,7 +510,8 @@ abstract class AbstractRLPInput implements RLPInput {
 
     if (!ignoreRest) {
       final long listEndOffset = endOfListOffset[depth - 1];
-      if (currentItem < listEndOffset) throw error("Not at the end of the current list");
+      if (currentItem < listEndOffset)
+        throw error("Not at the end of the current list");
     }
 
     --depth;
@@ -505,7 +524,8 @@ abstract class AbstractRLPInput implements RLPInput {
 
   @Override
   public boolean nextIsNull() {
-    return currentKind == RLPDecodingHelpers.Kind.SHORT_ELEMENT && currentPayloadSize == 0;
+    return currentKind == RLPDecodingHelpers.Kind.SHORT_ELEMENT &&
+        currentPayloadSize == 0;
   }
 
   @Override
