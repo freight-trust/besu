@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -20,6 +23,15 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.hyperledger.besu.ethereum.core.BlockDataGenerator;
 import org.hyperledger.besu.ethereum.eth.EthProtocol;
 import org.hyperledger.besu.ethereum.eth.messages.BlockBodiesMessage;
@@ -32,17 +44,6 @@ import org.hyperledger.besu.ethereum.p2p.rlpx.connections.PeerConnection.PeerNot
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.Capability;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
 import org.hyperledger.besu.testutil.TestClock;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.junit.Test;
 
 public class EthPeerTest {
@@ -55,7 +56,8 @@ public class EthPeerTest {
         (peer) -> peer.getHeadersByHash(gen.hash(), 5, 0, false);
     final MessageData targetMessage =
         BlockHeadersMessage.create(asList(gen.header(), gen.header()));
-    final MessageData otherMessage = BlockBodiesMessage.create(asList(gen.body(), gen.body()));
+    final MessageData otherMessage =
+        BlockBodiesMessage.create(asList(gen.body(), gen.body()));
 
     messageStream(getStream, targetMessage, otherMessage);
   }
@@ -64,8 +66,10 @@ public class EthPeerTest {
   public void getBodiesStream() throws PeerNotConnected {
     final ResponseStreamSupplier getStream =
         (peer) -> peer.getBodies(asList(gen.hash(), gen.hash()));
-    final MessageData targetMessage = BlockBodiesMessage.create(asList(gen.body(), gen.body()));
-    final MessageData otherMessage = BlockHeadersMessage.create(asList(gen.header(), gen.header()));
+    final MessageData targetMessage =
+        BlockBodiesMessage.create(asList(gen.body(), gen.body()));
+    final MessageData otherMessage =
+        BlockHeadersMessage.create(asList(gen.header(), gen.header()));
 
     messageStream(getStream, targetMessage, otherMessage);
   }
@@ -76,7 +80,8 @@ public class EthPeerTest {
         (peer) -> peer.getReceipts(asList(gen.hash(), gen.hash()));
     final MessageData targetMessage =
         ReceiptsMessage.create(singletonList(gen.receipts(gen.block())));
-    final MessageData otherMessage = BlockHeadersMessage.create(asList(gen.header(), gen.header()));
+    final MessageData otherMessage =
+        BlockHeadersMessage.create(asList(gen.header(), gen.header()));
 
     messageStream(getStream, targetMessage, otherMessage);
   }
@@ -85,8 +90,10 @@ public class EthPeerTest {
   public void getNodeDataStream() throws PeerNotConnected {
     final ResponseStreamSupplier getStream =
         (peer) -> peer.getNodeData(asList(gen.hash(), gen.hash()));
-    final MessageData targetMessage = NodeDataMessage.create(singletonList(gen.bytesValue()));
-    final MessageData otherMessage = BlockHeadersMessage.create(asList(gen.header(), gen.header()));
+    final MessageData targetMessage =
+        NodeDataMessage.create(singletonList(gen.bytesValue()));
+    final MessageData otherMessage =
+        BlockHeadersMessage.create(asList(gen.header(), gen.header()));
 
     messageStream(getStream, targetMessage, otherMessage);
   }
@@ -153,40 +160,32 @@ public class EthPeerTest {
     final EthPeer peer = createPeer();
     // Setup headers stream
     final AtomicInteger headersClosedCount = new AtomicInteger(0);
-    peer.getHeadersByHash(gen.hash(), 5, 0, false)
-        .then(
-            (closed, msg, p) -> {
-              if (closed) {
-                headersClosedCount.incrementAndGet();
-              }
-            });
+    peer.getHeadersByHash(gen.hash(), 5, 0, false).then((closed, msg, p) -> {
+      if (closed) {
+        headersClosedCount.incrementAndGet();
+      }
+    });
     // Bodies stream
     final AtomicInteger bodiesClosedCount = new AtomicInteger(0);
-    peer.getBodies(asList(gen.hash(), gen.hash()))
-        .then(
-            (closed, msg, p) -> {
-              if (closed) {
-                bodiesClosedCount.incrementAndGet();
-              }
-            });
+    peer.getBodies(asList(gen.hash(), gen.hash())).then((closed, msg, p) -> {
+      if (closed) {
+        bodiesClosedCount.incrementAndGet();
+      }
+    });
     // Receipts stream
     final AtomicInteger receiptsClosedCount = new AtomicInteger(0);
-    peer.getReceipts(asList(gen.hash(), gen.hash()))
-        .then(
-            (closed, msg, p) -> {
-              if (closed) {
-                receiptsClosedCount.incrementAndGet();
-              }
-            });
+    peer.getReceipts(asList(gen.hash(), gen.hash())).then((closed, msg, p) -> {
+      if (closed) {
+        receiptsClosedCount.incrementAndGet();
+      }
+    });
     // NodeData stream
     final AtomicInteger nodeDataClosedCount = new AtomicInteger(0);
-    peer.getNodeData(asList(gen.hash(), gen.hash()))
-        .then(
-            (closed, msg, p) -> {
-              if (closed) {
-                nodeDataClosedCount.incrementAndGet();
-              }
-            });
+    peer.getNodeData(asList(gen.hash(), gen.hash())).then((closed, msg, p) -> {
+      if (closed) {
+        nodeDataClosedCount.incrementAndGet();
+      }
+    });
 
     // Sanity check
     assertThat(headersClosedCount.get()).isEqualTo(0);
@@ -206,39 +205,35 @@ public class EthPeerTest {
   public void listenForMultipleStreams() throws PeerNotConnected {
     // Setup peer and messages
     final EthPeer peer = createPeer();
-    final EthMessage headersMessage =
-        new EthMessage(peer, BlockHeadersMessage.create(asList(gen.header(), gen.header())));
-    final EthMessage bodiesMessage =
-        new EthMessage(peer, BlockBodiesMessage.create(asList(gen.body(), gen.body())));
-    final EthMessage otherMessage =
-        new EthMessage(peer, ReceiptsMessage.create(singletonList(gen.receipts(gen.block()))));
+    final EthMessage headersMessage = new EthMessage(
+        peer, BlockHeadersMessage.create(asList(gen.header(), gen.header())));
+    final EthMessage bodiesMessage = new EthMessage(
+        peer, BlockBodiesMessage.create(asList(gen.body(), gen.body())));
+    final EthMessage otherMessage = new EthMessage(
+        peer, ReceiptsMessage.create(singletonList(gen.receipts(gen.block()))));
 
     // Set up stream for headers
     final AtomicInteger headersMessageCount = new AtomicInteger(0);
     final AtomicInteger headersClosedCount = new AtomicInteger(0);
-    peer.getHeadersByHash(gen.hash(), 5, 0, false)
-        .then(
-            (closed, msg, p) -> {
-              if (closed) {
-                headersClosedCount.incrementAndGet();
-              } else {
-                headersMessageCount.incrementAndGet();
-                assertThat(msg.getCode()).isEqualTo(headersMessage.getData().getCode());
-              }
-            });
+    peer.getHeadersByHash(gen.hash(), 5, 0, false).then((closed, msg, p) -> {
+      if (closed) {
+        headersClosedCount.incrementAndGet();
+      } else {
+        headersMessageCount.incrementAndGet();
+        assertThat(msg.getCode()).isEqualTo(headersMessage.getData().getCode());
+      }
+    });
     // Set up stream for bodies
     final AtomicInteger bodiesMessageCount = new AtomicInteger(0);
     final AtomicInteger bodiesClosedCount = new AtomicInteger(0);
-    peer.getBodies(asList(gen.hash(), gen.hash()))
-        .then(
-            (closed, msg, p) -> {
-              if (closed) {
-                bodiesClosedCount.incrementAndGet();
-              } else {
-                bodiesMessageCount.incrementAndGet();
-                assertThat(msg.getCode()).isEqualTo(bodiesMessage.getData().getCode());
-              }
-            });
+    peer.getBodies(asList(gen.hash(), gen.hash())).then((closed, msg, p) -> {
+      if (closed) {
+        bodiesClosedCount.incrementAndGet();
+      } else {
+        bodiesMessageCount.incrementAndGet();
+        assertThat(msg.getCode()).isEqualTo(bodiesMessage.getData().getCode());
+      }
+    });
 
     // Dispatch some messages and check expectations
     peer.dispatch(headersMessage);
@@ -295,7 +290,9 @@ public class EthPeerTest {
   @Test
   public void isFullyValidated_multipleValidators_unvalidated() {
     final List<PeerValidator> validators =
-        Stream.generate(() -> mock(PeerValidator.class)).limit(2).collect(Collectors.toList());
+        Stream.generate(() -> mock(PeerValidator.class))
+            .limit(2)
+            .collect(Collectors.toList());
 
     final EthPeer peer = createPeer(validators);
 
@@ -305,7 +302,9 @@ public class EthPeerTest {
   @Test
   public void isFullyValidated_multipleValidators_partiallyValidated() {
     final List<PeerValidator> validators =
-        Stream.generate(() -> mock(PeerValidator.class)).limit(2).collect(Collectors.toList());
+        Stream.generate(() -> mock(PeerValidator.class))
+            .limit(2)
+            .collect(Collectors.toList());
 
     final EthPeer peer = createPeer(validators);
     peer.markValidated(validators.get(0));
@@ -316,7 +315,9 @@ public class EthPeerTest {
   @Test
   public void isFullyValidated_multipleValidators_fullyValidated() {
     final List<PeerValidator> validators =
-        Stream.generate(() -> mock(PeerValidator.class)).limit(2).collect(Collectors.toList());
+        Stream.generate(() -> mock(PeerValidator.class))
+            .limit(2)
+            .collect(Collectors.toList());
 
     final EthPeer peer = createPeer(validators);
     validators.forEach(peer::markValidated);
@@ -324,10 +325,9 @@ public class EthPeerTest {
     assertThat(peer.isFullyValidated()).isTrue();
   }
 
-  private void messageStream(
-      final ResponseStreamSupplier getStream,
-      final MessageData targetMessage,
-      final MessageData otherMessage)
+  private void messageStream(final ResponseStreamSupplier getStream,
+                             final MessageData targetMessage,
+                             final MessageData otherMessage)
       throws PeerNotConnected {
     // Setup peer and ask for stream
     final EthPeer peer = createPeer();
@@ -336,13 +336,13 @@ public class EthPeerTest {
     final int targetCode = targetMessage.getCode();
     final RequestManager.ResponseCallback responseHandler =
         (closed, msg, p) -> {
-          if (closed) {
-            closedCount.incrementAndGet();
-          } else {
-            messageCount.incrementAndGet();
-            assertThat(msg.getCode()).isEqualTo(targetCode);
-          }
-        };
+      if (closed) {
+        closedCount.incrementAndGet();
+      } else {
+        messageCount.incrementAndGet();
+        assertThat(msg.getCode()).isEqualTo(targetCode);
+      }
+    };
 
     // Set up 1 stream
     getStream.get(peer).then(responseHandler);
@@ -390,7 +390,8 @@ public class EthPeerTest {
     assertThat(closedCount.get()).isEqualTo(2);
 
     // Open stream, then close it and check no messages are processed
-    final RequestManager.ResponseStream stream = getStream.get(peer).then(responseHandler);
+    final RequestManager.ResponseStream stream =
+        getStream.get(peer).then(responseHandler);
     // Reset counters
     messageCount.set(0);
     closedCount.set(0);
@@ -401,19 +402,19 @@ public class EthPeerTest {
     assertThat(closedCount.get()).isEqualTo(1);
   }
 
-  private EthPeer createPeer() {
-    return createPeer(Collections.emptyList());
-  }
+  private EthPeer createPeer() { return createPeer(Collections.emptyList()); }
 
   private EthPeer createPeer(final PeerValidator... peerValidators) {
     return createPeer(Arrays.asList(peerValidators));
   }
 
   private EthPeer createPeer(final List<PeerValidator> peerValidators) {
-    final Set<Capability> caps = new HashSet<>(singletonList(EthProtocol.ETH63));
+    final Set<Capability> caps =
+        new HashSet<>(singletonList(EthProtocol.ETH63));
     final PeerConnection peerConnection = new MockPeerConnection(caps);
     final Consumer<EthPeer> onPeerReady = (peer) -> {};
-    return new EthPeer(peerConnection, EthProtocol.NAME, onPeerReady, peerValidators, clock);
+    return new EthPeer(peerConnection, EthProtocol.NAME, onPeerReady,
+                       peerValidators, clock);
   }
 
   @FunctionalInterface

@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -18,9 +21,6 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hyperledger.besu.plugin.services.storage.KeyValueStorage;
-import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,8 +29,9 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
 import org.apache.tuweni.bytes.Bytes;
+import org.hyperledger.besu.plugin.services.storage.KeyValueStorage;
+import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -77,10 +78,9 @@ public abstract class AbstractKeyValueStorageTest {
   public void streamKeys() throws Exception {
     final KeyValueStorage store = createStore();
     final KeyValueStorageTransaction tx = store.startTransaction();
-    final List<byte[]> keys =
-        Stream.of("0F", "10", "11", "12")
-            .map(this::bytesFromHexString)
-            .collect(toUnmodifiableList());
+    final List<byte[]> keys = Stream.of("0F", "10", "11", "12")
+                                  .map(this::bytesFromHexString)
+                                  .collect(toUnmodifiableList());
     keys.forEach(key -> tx.put(key, bytesFromHexString("0ABC")));
     tx.commit();
     assertThat(store.streamKeys().collect(toUnmodifiableSet()))
@@ -96,11 +96,12 @@ public abstract class AbstractKeyValueStorageTest {
     tx.put(bytesFromHexString("11"), bytesFromHexString("0ABC"));
     tx.put(bytesFromHexString("12"), bytesFromHexString("0ABC"));
     tx.commit();
-    Set<byte[]> keys = store.getAllKeysThat(bv -> Bytes.wrap(bv).toString().contains("1"));
+    Set<byte[]> keys =
+        store.getAllKeysThat(bv -> Bytes.wrap(bv).toString().contains("1"));
     assertThat(keys.size()).isEqualTo(3);
-    assertThat(keys)
-        .containsExactlyInAnyOrder(
-            bytesFromHexString("10"), bytesFromHexString("11"), bytesFromHexString("12"));
+    assertThat(keys).containsExactlyInAnyOrder(bytesFromHexString("10"),
+                                               bytesFromHexString("11"),
+                                               bytesFromHexString("12"));
   }
 
   @Test
@@ -164,22 +165,20 @@ public abstract class AbstractKeyValueStorageTest {
     final KeyValueStorage store = createStore();
 
     final CountDownLatch finishedLatch = new CountDownLatch(2);
-    final Function<byte[], Thread> updater =
-        (value) ->
-            new Thread(
-                () -> {
-                  try {
-                    for (int i = 0; i < keyCount; i++) {
-                      KeyValueStorageTransaction tx = store.startTransaction();
-                      tx.put(Bytes.minimalBytes(i).toArrayUnsafe(), value);
-                      tx.commit();
-                    }
-                  } finally {
-                    finishedLatch.countDown();
-                  }
-                });
+    final Function<byte[], Thread> updater = (value) -> new Thread(() -> {
+      try {
+        for (int i = 0; i < keyCount; i++) {
+          KeyValueStorageTransaction tx = store.startTransaction();
+          tx.put(Bytes.minimalBytes(i).toArrayUnsafe(), value);
+          tx.commit();
+        }
+      } finally {
+        finishedLatch.countDown();
+      }
+    });
 
-    // Run 2 concurrent transactions that write a bunch of values to the same keys
+    // Run 2 concurrent transactions that write a bunch of values to the same
+    // keys
     final byte[] a = Bytes.of(10).toArrayUnsafe();
     final byte[] b = Bytes.of(20).toArrayUnsafe();
     updater.apply(a).start();
@@ -361,22 +360,20 @@ public abstract class AbstractKeyValueStorageTest {
     final KeyValueStorage store = createStore();
 
     final CountDownLatch finishedLatch = new CountDownLatch(2);
-    final Function<byte[], Thread> txRunner =
-        (value) ->
-            new Thread(
-                () -> {
-                  final KeyValueStorageTransaction tx = store.startTransaction();
-                  for (int i = 0; i < keyCount; i++) {
-                    tx.put(Bytes.minimalBytes(i).toArrayUnsafe(), value);
-                  }
-                  try {
-                    tx.commit();
-                  } finally {
-                    finishedLatch.countDown();
-                  }
-                });
+    final Function<byte[], Thread> txRunner = (value) -> new Thread(() -> {
+      final KeyValueStorageTransaction tx = store.startTransaction();
+      for (int i = 0; i < keyCount; i++) {
+        tx.put(Bytes.minimalBytes(i).toArrayUnsafe(), value);
+      }
+      try {
+        tx.commit();
+      } finally {
+        finishedLatch.countDown();
+      }
+    });
 
-    // Run 2 concurrent transactions that write a bunch of values to the same keys
+    // Run 2 concurrent transactions that write a bunch of values to the same
+    // keys
     final byte[] a = bytesOf(10);
     final byte[] b = bytesOf(20);
     txRunner.apply(a).start();
@@ -397,7 +394,8 @@ public abstract class AbstractKeyValueStorageTest {
       assertThat(actual).containsExactly(expected);
     }
 
-    assertThat(Arrays.equals(expected, a) || Arrays.equals(expected, b)).isTrue();
+    assertThat(Arrays.equals(expected, a) || Arrays.equals(expected, b))
+        .isTrue();
 
     store.close();
   }

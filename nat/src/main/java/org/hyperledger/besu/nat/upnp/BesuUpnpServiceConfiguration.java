@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,7 +22,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jupnp.DefaultUpnpServiceConfiguration;
@@ -62,31 +64,27 @@ class BesuUpnpServiceConfiguration implements UpnpServiceConfiguration {
   private final Namespace namespace;
 
   BesuUpnpServiceConfiguration() {
-    this(
-        NetworkAddressFactoryImpl.DEFAULT_TCP_HTTP_LISTEN_PORT,
-        NetworkAddressFactoryImpl.DEFAULT_MULTICAST_RESPONSE_LISTEN_PORT);
+    this(NetworkAddressFactoryImpl.DEFAULT_TCP_HTTP_LISTEN_PORT,
+         NetworkAddressFactoryImpl.DEFAULT_MULTICAST_RESPONSE_LISTEN_PORT);
   }
 
-  private BesuUpnpServiceConfiguration(
-      final int streamListenPort, final int multicastResponsePort) {
-    executorService =
-        new ThreadPoolExecutor(
-            16,
-            200,
-            10,
-            TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2000),
-            new DefaultUpnpServiceConfiguration.JUPnPThreadFactory(),
-            new ThreadPoolExecutor.DiscardPolicy() {
-              // The pool is bounded and rejections will happen during shutdown
-              @Override
-              public void rejectedExecution(
-                  final Runnable runnable, final ThreadPoolExecutor threadPoolExecutor) {
-                // Log and discard
-                LOG.warn("Thread pool rejected execution of " + runnable.getClass());
-                super.rejectedExecution(runnable, threadPoolExecutor);
-              }
-            });
+  private BesuUpnpServiceConfiguration(final int streamListenPort,
+                                       final int multicastResponsePort) {
+    executorService = new ThreadPoolExecutor(
+        16, 200, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
+        new DefaultUpnpServiceConfiguration.JUPnPThreadFactory(),
+        new ThreadPoolExecutor.DiscardPolicy() {
+          // The pool is bounded and rejections will happen during shutdown
+          @Override
+          public void rejectedExecution(
+              final Runnable runnable,
+              final ThreadPoolExecutor threadPoolExecutor) {
+            // Log and discard
+            LOG.warn("Thread pool rejected execution of " +
+                     runnable.getClass());
+            super.rejectedExecution(runnable, threadPoolExecutor);
+          }
+        });
     executorService.allowCoreThreadTimeOut(true);
 
     deviceDescriptorBinderUDA10 = new UDA10DeviceDescriptorBinderImpl();
@@ -99,7 +97,8 @@ class BesuUpnpServiceConfiguration implements UpnpServiceConfiguration {
 
   @Override
   public NetworkAddressFactory createNetworkAddressFactory() {
-    return new NetworkAddressFactoryImpl(streamListenPort, multicastResponsePort);
+    return new NetworkAddressFactoryImpl(streamListenPort,
+                                         multicastResponsePort);
   }
 
   @Override
@@ -120,27 +119,30 @@ class BesuUpnpServiceConfiguration implements UpnpServiceConfiguration {
   @SuppressWarnings("rawtypes") // superclass uses raw types
   @Override
   public StreamClient createStreamClient() {
-    return new OkHttpStreamClient(new StreamClientConfigurationImpl(executorService));
+    return new OkHttpStreamClient(
+        new StreamClientConfigurationImpl(executorService));
   }
 
   @SuppressWarnings("rawtypes") // superclass uses raw types
   @Override
-  public MulticastReceiver createMulticastReceiver(
-      final NetworkAddressFactory networkAddressFactory) {
-    return new MulticastReceiverImpl(
-        new MulticastReceiverConfigurationImpl(
-            networkAddressFactory.getMulticastGroup(), networkAddressFactory.getMulticastPort()));
+  public MulticastReceiver
+  createMulticastReceiver(final NetworkAddressFactory networkAddressFactory) {
+    return new MulticastReceiverImpl(new MulticastReceiverConfigurationImpl(
+        networkAddressFactory.getMulticastGroup(),
+        networkAddressFactory.getMulticastPort()));
   }
 
   @SuppressWarnings("rawtypes") // superclass uses raw types
   @Override
-  public DatagramIO createDatagramIO(final NetworkAddressFactory networkAddressFactory) {
+  public DatagramIO
+  createDatagramIO(final NetworkAddressFactory networkAddressFactory) {
     return new DatagramIOImpl(new DatagramIOConfigurationImpl());
   }
 
   @SuppressWarnings("rawtypes") // superclass uses raw types
   @Override
-  public StreamServer createStreamServer(final NetworkAddressFactory networkAddressFactory) {
+  public StreamServer
+  createStreamServer(final NetworkAddressFactory networkAddressFactory) {
     return null;
   }
 
@@ -195,7 +197,8 @@ class BesuUpnpServiceConfiguration implements UpnpServiceConfiguration {
   }
 
   @Override
-  public UpnpHeaders getDescriptorRetrievalHeaders(final RemoteDeviceIdentity identity) {
+  public UpnpHeaders
+  getDescriptorRetrievalHeaders(final RemoteDeviceIdentity identity) {
     return null;
   }
 

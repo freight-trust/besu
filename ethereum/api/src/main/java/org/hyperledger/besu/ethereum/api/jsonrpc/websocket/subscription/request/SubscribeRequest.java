@@ -1,22 +1,24 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.request;
 
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.FilterParameter;
-
 import java.util.Objects;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.FilterParameter;
 
 public class SubscribeRequest {
 
@@ -25,32 +27,23 @@ public class SubscribeRequest {
   private final FilterParameter filterParameter;
   private final String connectionId;
 
-  public SubscribeRequest(
-      final SubscriptionType subscriptionType,
-      final FilterParameter filterParameter,
-      final Boolean includeTransaction,
-      final String connectionId) {
+  public SubscribeRequest(final SubscriptionType subscriptionType,
+                          final FilterParameter filterParameter,
+                          final Boolean includeTransaction,
+                          final String connectionId) {
     this.subscriptionType = subscriptionType;
     this.includeTransaction = includeTransaction;
     this.filterParameter = filterParameter;
     this.connectionId = connectionId;
   }
 
-  public SubscriptionType getSubscriptionType() {
-    return subscriptionType;
-  }
+  public SubscriptionType getSubscriptionType() { return subscriptionType; }
 
-  public FilterParameter getFilterParameter() {
-    return filterParameter;
-  }
+  public FilterParameter getFilterParameter() { return filterParameter; }
 
-  public Boolean getIncludeTransaction() {
-    return includeTransaction;
-  }
+  public Boolean getIncludeTransaction() { return includeTransaction; }
 
-  public String getConnectionId() {
-    return this.connectionId;
-  }
+  public String getConnectionId() { return this.connectionId; }
 
   @Override
   public String toString() {
@@ -67,15 +60,16 @@ public class SubscribeRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SubscribeRequest that = (SubscribeRequest) o;
-    return subscriptionType == that.subscriptionType
-        && Objects.equals(includeTransaction, that.includeTransaction)
-        && Objects.equals(filterParameter, that.filterParameter)
-        && Objects.equals(connectionId, that.connectionId);
+    final SubscribeRequest that = (SubscribeRequest)o;
+    return subscriptionType == that.subscriptionType &&
+        Objects.equals(includeTransaction, that.includeTransaction) &&
+        Objects.equals(filterParameter, that.filterParameter) &&
+        Objects.equals(connectionId, that.connectionId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(subscriptionType, includeTransaction, filterParameter, connectionId);
+    return Objects.hash(subscriptionType, includeTransaction, filterParameter,
+                        connectionId);
   }
 }
