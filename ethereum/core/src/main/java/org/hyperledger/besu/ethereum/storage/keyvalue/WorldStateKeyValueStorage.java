@@ -1,19 +1,26 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.ethereum.storage.keyvalue;
 
+<<<<<<< HEAD
+import java.util.ArrayList;
+import java.util.List;
+=======
 import org.hyperledger.besu.ethereum.core.Hash;
 import org.hyperledger.besu.ethereum.trie.MerklePatriciaTrie;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage;
@@ -22,22 +29,39 @@ import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
 import org.hyperledger.besu.util.Subscribers;
 
 import java.util.HashSet;
+>>>>>>> master
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
+<<<<<<< HEAD
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+=======
 import java.util.stream.Stream;
 
+>>>>>>> master
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
+import org.hyperledger.besu.ethereum.core.Hash;
+import org.hyperledger.besu.ethereum.trie.MerklePatriciaTrie;
+import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage;
+import org.hyperledger.besu.plugin.services.storage.KeyValueStorage;
+import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
+import org.hyperledger.besu.util.Subscribers;
 
 public class WorldStateKeyValueStorage implements WorldStateStorage {
 
-  private final Subscribers<NodesAddedListener> nodeAddedListeners = Subscribers.create();
+  private final Subscribers<NodesAddedListener> nodeAddedListeners =
+      Subscribers.create();
   private final KeyValueStorage keyValueStorage;
+<<<<<<< HEAD
+  private static final Logger LOG = LogManager.getLogger();
+=======
   private final ReentrantLock lock = new ReentrantLock();
+>>>>>>> master
 
   public WorldStateKeyValueStorage(final KeyValueStorage keyValueStorage) {
     this.keyValueStorage = keyValueStorage;
@@ -128,11 +152,16 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     private final Set<Bytes32> addedNodes = new HashSet<>();
     private final Lock lock;
 
+<<<<<<< HEAD
+    public Updater(final KeyValueStorageTransaction transaction,
+                   final Subscribers<NodesAddedListener> nodeAddedListeners) {
+=======
     public Updater(
         final Lock lock,
         final KeyValueStorageTransaction transaction,
         final Subscribers<NodesAddedListener> nodeAddedListeners) {
       this.lock = lock;
+>>>>>>> master
       this.transaction = transaction;
       this.nodeAddedListeners = nodeAddedListeners;
     }
@@ -156,7 +185,8 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     }
 
     @Override
-    public Updater putAccountStateTrieNode(final Bytes32 nodeHash, final Bytes node) {
+    public Updater putAccountStateTrieNode(final Bytes32 nodeHash,
+                                           final Bytes node) {
       if (nodeHash.equals(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH)) {
         // Don't save empty nodes
         return this;
@@ -167,7 +197,8 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     }
 
     @Override
-    public Updater putAccountStorageTrieNode(final Bytes32 nodeHash, final Bytes node) {
+    public Updater putAccountStorageTrieNode(final Bytes32 nodeHash,
+                                             final Bytes node) {
       if (nodeHash.equals(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH)) {
         // Don't save empty nodes
         return this;
@@ -179,6 +210,11 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
 
     @Override
     public void commit() {
+<<<<<<< HEAD
+      LOG.debug("commit");
+      nodeAddedListeners.forEach(listener -> listener.onNodesAdded(addedNodes));
+      transaction.commit();
+=======
       lock.lock();
       try {
         nodeAddedListeners.forEach(listener -> listener.onNodesAdded(addedNodes));
@@ -186,11 +222,16 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
       } finally {
         lock.unlock();
       }
+>>>>>>> master
     }
 
     @Override
     public void rollback() {
+<<<<<<< HEAD
+      LOG.debug("rollback");
+=======
       addedNodes.clear();
+>>>>>>> master
       transaction.rollback();
     }
   }

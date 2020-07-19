@@ -1,3 +1,4 @@
+.vscode/
 *.bak
 *.swp
 *.tmp
@@ -26,6 +27,7 @@ tmp/
 build/
 out/
 site/
+gradle/
 /kubernetes/reports/
 /kubernetes/besu-*.tar.gz
 **/src/*/generated
