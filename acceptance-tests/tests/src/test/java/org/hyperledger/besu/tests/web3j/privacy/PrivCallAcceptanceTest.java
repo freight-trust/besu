@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -17,16 +20,14 @@ package org.hyperledger.besu.tests.web3j.privacy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.hyperledger.besu.tests.acceptance.dsl.privacy.PrivacyAcceptanceTestBase;
-import org.hyperledger.besu.tests.acceptance.dsl.privacy.PrivacyNode;
-import org.hyperledger.besu.tests.web3j.generated.EventEmitter;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
+import org.hyperledger.besu.tests.acceptance.dsl.privacy.PrivacyAcceptanceTestBase;
+import org.hyperledger.besu.tests.acceptance.dsl.privacy.PrivacyNode;
+import org.hyperledger.besu.tests.web3j.generated.EventEmitter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,9 +53,8 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
 
   @Before
   public void setUp() throws Exception {
-    minerNode =
-        privacyBesu.createPrivateTransactionEnabledMinerNode(
-            "miner-node", privacyAccountResolver.resolve(0));
+    minerNode = privacyBesu.createPrivateTransactionEnabledMinerNode(
+        "miner-node", privacyAccountResolver.resolve(0));
     privacyCluster.start(minerNode);
   }
 
@@ -62,32 +62,30 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
   public void mustReturnCorrectValue() throws Exception {
 
     final String privacyGroupId =
-        minerNode.execute(
-            privacyTransactions.createPrivacyGroup(
-                "myGroupName", "my group description", minerNode));
+        minerNode.execute(privacyTransactions.createPrivacyGroup(
+            "myGroupName", "my group description", minerNode));
 
-    final EventEmitter eventEmitter =
-        minerNode.execute(
-            privateContractTransactions.createSmartContractWithPrivacyGroupId(
-                EventEmitter.class,
-                minerNode.getTransactionSigningKey(),
-                POW_CHAIN_ID,
-                minerNode.getEnclaveKey(),
-                privacyGroupId));
+    final EventEmitter eventEmitter = minerNode.execute(
+        privateContractTransactions.createSmartContractWithPrivacyGroupId(
+            EventEmitter.class, minerNode.getTransactionSigningKey(),
+            POW_CHAIN_ID, minerNode.getEnclaveKey(), privacyGroupId));
 
     privateContractVerifier
-        .validPrivateContractDeployed(
-            eventEmitter.getContractAddress(), minerNode.getAddress().toString())
+        .validPrivateContractDeployed(eventEmitter.getContractAddress(),
+                                      minerNode.getAddress().toString())
         .verify(eventEmitter);
 
-    final Request<Object, EthCall> priv_call = privCall(privacyGroupId, eventEmitter, false, false);
+    final Request<Object, EthCall> priv_call =
+        privCall(privacyGroupId, eventEmitter, false, false);
 
     EthCall resp = priv_call.send();
 
     String value = resp.getValue();
-    assertThat(new BigInteger(value.substring(2), 16)).isEqualByComparingTo(BigInteger.ZERO);
+    assertThat(new BigInteger(value.substring(2), 16))
+        .isEqualByComparingTo(BigInteger.ZERO);
 
-    final TransactionReceipt receipt = eventEmitter.store(BigInteger.valueOf(VALUE)).send();
+    final TransactionReceipt receipt =
+        eventEmitter.store(BigInteger.valueOf(VALUE)).send();
     assertThat(receipt).isNotNull();
 
     resp = priv_call.send();
@@ -97,25 +95,21 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
   }
 
   @Test
-  public void shouldReturnEmptyResultWithNonExistingPrivacyGroup() throws IOException {
+  public void shouldReturnEmptyResultWithNonExistingPrivacyGroup()
+      throws IOException {
 
     final String privacyGroupId =
-        minerNode.execute(
-            privacyTransactions.createPrivacyGroup(
-                "myGroupName", "my group description", minerNode));
+        minerNode.execute(privacyTransactions.createPrivacyGroup(
+            "myGroupName", "my group description", minerNode));
 
-    final EventEmitter eventEmitter =
-        minerNode.execute(
-            privateContractTransactions.createSmartContractWithPrivacyGroupId(
-                EventEmitter.class,
-                minerNode.getTransactionSigningKey(),
-                POW_CHAIN_ID,
-                minerNode.getEnclaveKey(),
-                privacyGroupId));
+    final EventEmitter eventEmitter = minerNode.execute(
+        privateContractTransactions.createSmartContractWithPrivacyGroupId(
+            EventEmitter.class, minerNode.getTransactionSigningKey(),
+            POW_CHAIN_ID, minerNode.getEnclaveKey(), privacyGroupId));
 
     privateContractVerifier
-        .validPrivateContractDeployed(
-            eventEmitter.getContractAddress(), minerNode.getAddress().toString())
+        .validPrivateContractDeployed(eventEmitter.getContractAddress(),
+                                      minerNode.getAddress().toString())
         .verify(eventEmitter);
 
     final String invalidPrivacyGroup = constructInvalidString(privacyGroupId);
@@ -131,25 +125,21 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
   public void mustNotSucceedWithWronglyEncodedFunction() {
 
     final String privacyGroupId =
-        minerNode.execute(
-            privacyTransactions.createPrivacyGroup(
-                "myGroupName", "my group description", minerNode));
+        minerNode.execute(privacyTransactions.createPrivacyGroup(
+            "myGroupName", "my group description", minerNode));
 
-    final EventEmitter eventEmitter =
-        minerNode.execute(
-            privateContractTransactions.createSmartContractWithPrivacyGroupId(
-                EventEmitter.class,
-                minerNode.getTransactionSigningKey(),
-                POW_CHAIN_ID,
-                minerNode.getEnclaveKey(),
-                privacyGroupId));
+    final EventEmitter eventEmitter = minerNode.execute(
+        privateContractTransactions.createSmartContractWithPrivacyGroupId(
+            EventEmitter.class, minerNode.getTransactionSigningKey(),
+            POW_CHAIN_ID, minerNode.getEnclaveKey(), privacyGroupId));
 
     privateContractVerifier
-        .validPrivateContractDeployed(
-            eventEmitter.getContractAddress(), minerNode.getAddress().toString())
+        .validPrivateContractDeployed(eventEmitter.getContractAddress(),
+                                      minerNode.getAddress().toString())
         .verify(eventEmitter);
 
-    final Request<Object, EthCall> priv_call = privCall(privacyGroupId, eventEmitter, true, false);
+    final Request<Object, EthCall> priv_call =
+        privCall(privacyGroupId, eventEmitter, true, false);
 
     assertThatExceptionOfType(ClientConnectionException.class)
         .isThrownBy(() -> priv_call.send())
@@ -160,25 +150,21 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
   public void mustReturn0xUsingInvalidContractAddress() throws IOException {
 
     final String privacyGroupId =
-        minerNode.execute(
-            privacyTransactions.createPrivacyGroup(
-                "myGroupName", "my group description", minerNode));
+        minerNode.execute(privacyTransactions.createPrivacyGroup(
+            "myGroupName", "my group description", minerNode));
 
-    final EventEmitter eventEmitter =
-        minerNode.execute(
-            privateContractTransactions.createSmartContractWithPrivacyGroupId(
-                EventEmitter.class,
-                minerNode.getTransactionSigningKey(),
-                POW_CHAIN_ID,
-                minerNode.getEnclaveKey(),
-                privacyGroupId));
+    final EventEmitter eventEmitter = minerNode.execute(
+        privateContractTransactions.createSmartContractWithPrivacyGroupId(
+            EventEmitter.class, minerNode.getTransactionSigningKey(),
+            POW_CHAIN_ID, minerNode.getEnclaveKey(), privacyGroupId));
 
     privateContractVerifier
-        .validPrivateContractDeployed(
-            eventEmitter.getContractAddress(), minerNode.getAddress().toString())
+        .validPrivateContractDeployed(eventEmitter.getContractAddress(),
+                                      minerNode.getAddress().toString())
         .verify(eventEmitter);
 
-    final Request<Object, EthCall> priv_call = privCall(privacyGroupId, eventEmitter, false, true);
+    final Request<Object, EthCall> priv_call =
+        privCall(privacyGroupId, eventEmitter, false, true);
 
     final EthCall result = priv_call.send();
 
@@ -198,11 +184,10 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
   }
 
   @NotNull
-  private Request<Object, EthCall> privCall(
-      final String privacyGroupId,
-      final Contract eventEmitter,
-      final boolean useInvalidParameters,
-      final boolean useInvalidContractAddress) {
+  private Request<Object, EthCall>
+  privCall(final String privacyGroupId, final Contract eventEmitter,
+           final boolean useInvalidParameters,
+           final boolean useInvalidContractAddress) {
 
     final Uint256 invalid = new Uint256(BigInteger.TEN);
 
@@ -210,33 +195,28 @@ public class PrivCallAcceptanceTest extends PrivacyAcceptanceTestBase {
     final List<Type> inputParameters =
         useInvalidParameters ? Arrays.asList(invalid) : Collections.emptyList();
 
-    final Function function =
-        new Function(
-            "value",
-            inputParameters,
-            Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
+    final Function function = new Function(
+        "value", inputParameters,
+        Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
 
     final String encoded = FunctionEncoder.encode(function);
 
     final HttpService httpService =
-        new HttpService(
-            "http://"
-                + minerNode.getBesu().getHostName()
-                + ":"
-                + minerNode.getBesu().getJsonRpcSocketPort().get());
+        new HttpService("http://" + minerNode.getBesu().getHostName() + ":" +
+                        minerNode.getBesu().getJsonRpcSocketPort().get());
 
     final String validContractAddress = eventEmitter.getContractAddress();
-    final String invalidContractAddress = constructInvalidString(validContractAddress);
-    final String contractAddress =
-        useInvalidContractAddress ? invalidContractAddress : validContractAddress;
+    final String invalidContractAddress =
+        constructInvalidString(validContractAddress);
+    final String contractAddress = useInvalidContractAddress
+                                       ? invalidContractAddress
+                                       : validContractAddress;
 
     final Transaction transaction =
         Transaction.createEthCallTransaction(null, contractAddress, encoded);
 
-    return new Request<>(
-        "priv_call",
-        Arrays.asList(privacyGroupId, transaction, "latest"),
-        httpService,
-        EthCall.class);
+    return new Request<>("priv_call",
+                         Arrays.asList(privacyGroupId, transaction, "latest"),
+                         httpService, EthCall.class);
   }
 }

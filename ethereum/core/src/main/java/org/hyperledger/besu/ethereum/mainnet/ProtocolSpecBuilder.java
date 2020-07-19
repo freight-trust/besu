@@ -19,6 +19,7 @@ package org.hyperledger.besu.ethereum.mainnet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -38,11 +39,6 @@ import org.hyperledger.besu.ethereum.privacy.PrivateTransactionProcessor;
 import org.hyperledger.besu.ethereum.privacy.PrivateTransactionValidator;
 import org.hyperledger.besu.ethereum.vm.EVM;
 import org.hyperledger.besu.ethereum.vm.GasCalculator;
-
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class ProtocolSpecBuilder<T> {
   private Supplier<GasCalculator> gasCalculatorBuilder;
@@ -327,7 +323,8 @@ public class ProtocolSpecBuilder<T> {
                  "Missing Mining Beneficiary Calculator");
     checkNotNull(protocolSchedule, "Missing protocol schedule");
     checkNotNull(privacyParameters, "Missing privacy parameters");
-    checkNotNull(transactionPriceCalculator, "Missing transaction price calculator");
+    checkNotNull(transactionPriceCalculator,
+                 "Missing transaction price calculator");
     checkNotNull(eip1559, "Missing eip1559 optional wrapper");
 
     final GasCalculator gasCalculator = gasCalculatorBuilder.get();
@@ -349,21 +346,18 @@ public class ProtocolSpecBuilder<T> {
                                           messageCallProcessor);
 
     final BlockHeaderValidator<T> blockHeaderValidator =
-        blockHeaderValidatorBuilder.difficultyCalculator(difficultyCalculator).build();
+        blockHeaderValidatorBuilder.difficultyCalculator(difficultyCalculator)
+            .build();
 
     final BlockHeaderValidator<T> ommerHeaderValidator =
-        ommerHeaderValidatorBuilder.difficultyCalculator(difficultyCalculator).build();
+        ommerHeaderValidatorBuilder.difficultyCalculator(difficultyCalculator)
+            .build();
     final BlockBodyValidator<T> blockBodyValidator =
         blockBodyValidatorBuilder.apply(protocolSchedule);
 
-    BlockProcessor blockProcessor =
-        blockProcessorBuilder.apply(
-            transactionProcessor,
-            transactionReceiptFactory,
-            blockReward,
-            miningBeneficiaryCalculator,
-            skipZeroBlockRewards,
-            gasBudgetCalculator);
+    BlockProcessor blockProcessor = blockProcessorBuilder.apply(
+        transactionProcessor, transactionReceiptFactory, blockReward,
+        miningBeneficiaryCalculator, skipZeroBlockRewards, gasBudgetCalculator);
     // Set private Tx Processor
     PrivateTransactionProcessor privateTransactionProcessor = null;
     if (privacyParameters.isEnabled()) {
@@ -375,21 +369,21 @@ public class ProtocolSpecBuilder<T> {
       final Address address =
           Address.privacyPrecompiled(privacyParameters.getPrivacyAddress());
       final PrivacyPrecompiledContract privacyPrecompiledContract =
-          (PrivacyPrecompiledContract)
-              precompileContractRegistry.get(address, Account.DEFAULT_VERSION);
-      privacyPrecompiledContract.setPrivateTransactionProcessor(privateTransactionProcessor);
-      final OnChainPrivacyPrecompiledContract onChainPrivacyPrecompiledContract =
-          (OnChainPrivacyPrecompiledContract)
-              precompileContractRegistry.get(Address.ONCHAIN_PRIVACY, Account.DEFAULT_VERSION);
-      onChainPrivacyPrecompiledContract.setPrivateTransactionProcessor(privateTransactionProcessor);
-      blockProcessor =
-          new PrivacyBlockProcessor(
-              blockProcessor,
-              protocolSchedule,
-              privacyParameters.getEnclave(),
-              privacyParameters.getPrivateStateStorage(),
-              privacyParameters.getPrivateWorldStateArchive(),
-              privacyParameters.getPrivateStateRootResolver());
+          (PrivacyPrecompiledContract)precompileContractRegistry.get(
+              address, Account.DEFAULT_VERSION);
+      privacyPrecompiledContract.setPrivateTransactionProcessor(
+          privateTransactionProcessor);
+      final OnChainPrivacyPrecompiledContract
+          onChainPrivacyPrecompiledContract =
+              (OnChainPrivacyPrecompiledContract)precompileContractRegistry.get(
+                  Address.ONCHAIN_PRIVACY, Account.DEFAULT_VERSION);
+      onChainPrivacyPrecompiledContract.setPrivateTransactionProcessor(
+          privateTransactionProcessor);
+      blockProcessor = new PrivacyBlockProcessor(
+          blockProcessor, protocolSchedule, privacyParameters.getEnclave(),
+          privacyParameters.getPrivateStateStorage(),
+          privacyParameters.getPrivateWorldStateArchive(),
+          privacyParameters.getPrivateStateRootResolver());
     }
 
     final BlockValidator<T> blockValidator = blockValidatorBuilder.apply(
@@ -397,28 +391,13 @@ public class ProtocolSpecBuilder<T> {
     final BlockImporter<T> blockImporter =
         blockImporterBuilder.apply(blockValidator);
     return new ProtocolSpec<>(
-        name,
-        evm,
-        transactionValidator,
-        transactionProcessor,
-        privateTransactionProcessor,
-        blockHeaderValidator,
-        ommerHeaderValidator,
-        blockBodyValidator,
-        blockProcessor,
-        blockImporter,
-        blockValidator,
-        blockHeaderFunctions,
-        transactionReceiptFactory,
-        difficultyCalculator,
-        blockReward,
-        miningBeneficiaryCalculator,
-        precompileContractRegistry,
-        skipZeroBlockRewards,
-        gasCalculator,
-        transactionPriceCalculator,
-        eip1559,
-        gasBudgetCalculator);
+        name, evm, transactionValidator, transactionProcessor,
+        privateTransactionProcessor, blockHeaderValidator, ommerHeaderValidator,
+        blockBodyValidator, blockProcessor, blockImporter, blockValidator,
+        blockHeaderFunctions, transactionReceiptFactory, difficultyCalculator,
+        blockReward, miningBeneficiaryCalculator, precompileContractRegistry,
+        skipZeroBlockRewards, gasCalculator, transactionPriceCalculator,
+        eip1559, gasBudgetCalculator);
   }
 
   public interface TransactionProcessorBuilder {
@@ -443,13 +422,14 @@ public class ProtocolSpecBuilder<T> {
   }
 
   public interface BlockProcessorBuilder {
-    BlockProcessor apply(
-        TransactionProcessor transactionProcessor,
-        MainnetBlockProcessor.TransactionReceiptFactory transactionReceiptFactory,
-        Wei blockReward,
-        MiningBeneficiaryCalculator miningBeneficiaryCalculator,
-        boolean skipZeroBlockRewards,
-        TransactionGasBudgetCalculator gasBudgetCalculator);
+    BlockProcessor
+    apply(TransactionProcessor transactionProcessor,
+          MainnetBlockProcessor
+              .TransactionReceiptFactory transactionReceiptFactory,
+          Wei blockReward,
+          MiningBeneficiaryCalculator miningBeneficiaryCalculator,
+          boolean skipZeroBlockRewards,
+          TransactionGasBudgetCalculator gasBudgetCalculator);
   }
 
   public interface BlockValidatorBuilder<T> {

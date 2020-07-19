@@ -1,14 +1,17 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -29,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,19 +58,25 @@ public class ConfigOptionSearchAndRunHandlerTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final ByteArrayOutputStream commandOutput = new ByteArrayOutputStream();
-  private final ByteArrayOutputStream commandErrorOutput = new ByteArrayOutputStream();
+  private final ByteArrayOutputStream commandOutput =
+      new ByteArrayOutputStream();
+  private final ByteArrayOutputStream commandErrorOutput =
+      new ByteArrayOutputStream();
   private final PrintStream outPrintStream = new PrintStream(commandOutput);
-  private final PrintStream errPrintStream = new PrintStream(commandErrorOutput);
+  private final PrintStream errPrintStream =
+      new PrintStream(commandErrorOutput);
 
   private final AbstractParseResultHandler<List<Object>> resultHandler =
       new RunLast().useOut(outPrintStream).useAnsi(Ansi.OFF);
   private final DefaultExceptionHandler<List<Object>> exceptionHandler =
-      new DefaultExceptionHandler<List<Object>>().useErr(errPrintStream).useAnsi(Ansi.OFF);
-  private final Map<String, String> environment = singletonMap("BESU_LOGGING", "ERROR");
+      new DefaultExceptionHandler<List<Object>>()
+          .useErr(errPrintStream)
+          .useAnsi(Ansi.OFF);
+  private final Map<String, String> environment =
+      singletonMap("BESU_LOGGING", "ERROR");
   private final ConfigOptionSearchAndRunHandler configParsingHandler =
-      new ConfigOptionSearchAndRunHandler(
-          resultHandler, exceptionHandler, CONFIG_FILE_OPTION_NAME, environment);
+      new ConfigOptionSearchAndRunHandler(resultHandler, exceptionHandler,
+                                          CONFIG_FILE_OPTION_NAME, environment);
 
   @Mock ParseResult mockParseResult;
   @Mock CommandLine mockCommandLine;
@@ -83,8 +91,10 @@ public class ConfigOptionSearchAndRunHandlerTest {
     final List<String> originalArgs = new ArrayList<>();
     originalArgs.add(CONFIG_FILE_OPTION_NAME);
     when(mockParseResult.originalArgs()).thenReturn(originalArgs);
-    when(mockParseResult.matchedOption(CONFIG_FILE_OPTION_NAME)).thenReturn(mockConfigOptionSpec);
-    when(mockParseResult.hasMatchedOption(CONFIG_FILE_OPTION_NAME)).thenReturn(true);
+    when(mockParseResult.matchedOption(CONFIG_FILE_OPTION_NAME))
+        .thenReturn(mockConfigOptionSpec);
+    when(mockParseResult.hasMatchedOption(CONFIG_FILE_OPTION_NAME))
+        .thenReturn(true);
     when(mockConfigOptionSpec.getter()).thenReturn(mockConfigOptionGetter);
   }
 
@@ -92,8 +102,11 @@ public class ConfigOptionSearchAndRunHandlerTest {
   public void handle() throws Exception {
     when(mockConfigOptionGetter.get()).thenReturn(temp.newFile());
     final List<Object> result = configParsingHandler.handle(mockParseResult);
-    verify(mockCommandLine).setDefaultValueProvider(any(IDefaultValueProvider.class));
-    verify(mockCommandLine).parseWithHandlers(eq(resultHandler), eq(exceptionHandler), anyString());
+    verify(mockCommandLine)
+        .setDefaultValueProvider(any(IDefaultValueProvider.class));
+    verify(mockCommandLine)
+        .parseWithHandlers(eq(resultHandler), eq(exceptionHandler),
+                           anyString());
     assertThat(result).isEmpty();
   }
 
@@ -112,19 +125,24 @@ public class ConfigOptionSearchAndRunHandlerTest {
   }
 
   @Test
-  public void shouldRetrieveConfigFromEnvironmentWhenConfigFileSpecified() throws Exception {
+  public void shouldRetrieveConfigFromEnvironmentWhenConfigFileSpecified()
+      throws Exception {
     final IDefaultValueProvider defaultValueProvider =
         configParsingHandler.createDefaultValueProvider(
             mockCommandLine, Optional.of(new File("foo")));
-    final String value = defaultValueProvider.defaultValue(OptionSpec.builder("--logging").build());
+    final String value = defaultValueProvider.defaultValue(
+        OptionSpec.builder("--logging").build());
     assertThat(value).isEqualTo("ERROR");
   }
 
   @Test
-  public void shouldRetrieveConfigFromEnvironmentWhenConfigFileNotSpecified() throws Exception {
+  public void shouldRetrieveConfigFromEnvironmentWhenConfigFileNotSpecified()
+      throws Exception {
     final IDefaultValueProvider defaultValueProvider =
-        configParsingHandler.createDefaultValueProvider(mockCommandLine, Optional.empty());
-    final String value = defaultValueProvider.defaultValue(OptionSpec.builder("--logging").build());
+        configParsingHandler.createDefaultValueProvider(mockCommandLine,
+                                                        Optional.empty());
+    final String value = defaultValueProvider.defaultValue(
+        OptionSpec.builder("--logging").build());
     assertThat(value).isEqualTo("ERROR");
   }
 }

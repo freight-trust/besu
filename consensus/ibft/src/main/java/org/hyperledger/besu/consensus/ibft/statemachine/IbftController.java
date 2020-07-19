@@ -1,19 +1,26 @@
 /*
  * Copyright ConsenSys AG.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.hyperledger.besu.consensus.ibft.statemachine;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hyperledger.besu.consensus.ibft.ConsensusRoundIdentifier;
 import org.hyperledger.besu.consensus.ibft.Gossiper;
 import org.hyperledger.besu.consensus.ibft.MessageTracker;
@@ -34,12 +41,6 @@ import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.Message;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 public class IbftController {
 
   private static final Logger LOG = LogManager.getLogger();
@@ -55,11 +56,9 @@ public class IbftController {
   private final AtomicBoolean started = new AtomicBoolean(false);
 
   public IbftController(
-      final Blockchain blockchain,
-      final IbftFinalState ibftFinalState,
+      final Blockchain blockchain, final IbftFinalState ibftFinalState,
       final IbftBlockHeightManagerFactory ibftBlockHeightManagerFactory,
-      final Gossiper gossiper,
-      final MessageTracker duplicateMessageTracker,
+      final Gossiper gossiper, final MessageTracker duplicateMessageTracker,
       final FutureMessageBuffer futureMessageBuffer,
       final SynchronizerUpdater sychronizerUpdater) {
     this.blockchain = blockchain;
@@ -90,45 +89,42 @@ public class IbftController {
   private void handleMessage(final Message message) {
     final MessageData messageData = message.getData();
     switch (messageData.getCode()) {
-      case IbftV2.PROPOSAL:
-        consumeMessage(
-            message,
-            ProposalMessageData.fromMessageData(messageData).decode(),
-            currentHeightManager::handleProposalPayload);
-        break;
+    case IbftV2.PROPOSAL:
+      consumeMessage(message,
+                     ProposalMessageData.fromMessageData(messageData).decode(),
+                     currentHeightManager::handleProposalPayload);
+      break;
 
-      case IbftV2.PREPARE:
-        consumeMessage(
-            message,
-            PrepareMessageData.fromMessageData(messageData).decode(),
-            currentHeightManager::handlePreparePayload);
-        break;
+    case IbftV2.PREPARE:
+      consumeMessage(message,
+                     PrepareMessageData.fromMessageData(messageData).decode(),
+                     currentHeightManager::handlePreparePayload);
+      break;
 
-      case IbftV2.COMMIT:
-        consumeMessage(
-            message,
-            CommitMessageData.fromMessageData(messageData).decode(),
-            currentHeightManager::handleCommitPayload);
-        break;
+    case IbftV2.COMMIT:
+      consumeMessage(message,
+                     CommitMessageData.fromMessageData(messageData).decode(),
+                     currentHeightManager::handleCommitPayload);
+      break;
 
-      case IbftV2.ROUND_CHANGE:
-        consumeMessage(
-            message,
-            RoundChangeMessageData.fromMessageData(messageData).decode(),
-            currentHeightManager::handleRoundChangePayload);
-        break;
+    case IbftV2.ROUND_CHANGE:
+      consumeMessage(
+          message, RoundChangeMessageData.fromMessageData(messageData).decode(),
+          currentHeightManager::handleRoundChangePayload);
+      break;
 
-      default:
-        throw new IllegalArgumentException(
-            String.format(
-                "Received message with messageCode=%d does not conform to any recognised IBFT message structure",
-                message.getData().getCode()));
+    default:
+      throw new IllegalArgumentException(String.format(
+          "Received message with messageCode=%d does not conform to any recognised IBFT message structure",
+          message.getData().getCode()));
     }
   }
 
-  private <P extends IbftMessage<?>> void consumeMessage(
-      final Message message, final P ibftMessage, final Consumer<P> handleMessage) {
-    LOG.trace("Received IBFT {} message", ibftMessage.getClass().getSimpleName());
+  private <P extends IbftMessage<?>> void
+  consumeMessage(final Message message, final P ibftMessage,
+                 final Consumer<P> handleMessage) {
+    LOG.trace("Received IBFT {} message",
+              ibftMessage.getClass().getSimpleName());
     if (processMessage(ibftMessage, message)) {
       gossiper.send(message);
       handleMessage.accept(ibftMessage);
@@ -137,16 +133,15 @@ public class IbftController {
 
   public void handleNewBlockEvent(final NewChainHead newChainHead) {
     final BlockHeader newBlockHeader = newChainHead.getNewChainHeadHeader();
-    final BlockHeader currentMiningParent = currentHeightManager.getParentBlockHeader();
-    LOG.debug(
-        "New chain head detected (block number={})," + " currently mining on top of {}.",
-        newBlockHeader.getNumber(),
-        currentMiningParent.getNumber());
+    final BlockHeader currentMiningParent =
+        currentHeightManager.getParentBlockHeader();
+    LOG.debug("New chain head detected (block number={}),"
+                  + " currently mining on top of {}.",
+              newBlockHeader.getNumber(), currentMiningParent.getNumber());
     if (newBlockHeader.getNumber() < currentMiningParent.getNumber()) {
       LOG.trace(
           "Discarding NewChainHead event, was for previous block height. chainHeight={} eventHeight={}",
-          currentMiningParent.getNumber(),
-          newBlockHeader.getNumber());
+          currentMiningParent.getNumber(), newBlockHeader.getNumber());
       return;
     }
 
@@ -154,8 +149,7 @@ public class IbftController {
       if (newBlockHeader.getHash().equals(currentMiningParent.getHash())) {
         LOG.trace(
             "Discarding duplicate NewChainHead event. chainHeight={} newBlockHash={} parentBlockHash={}",
-            newBlockHeader.getNumber(),
-            newBlockHeader.getHash(),
+            newBlockHeader.getNumber(), newBlockHeader.getHash(),
             currentMiningParent.getHash());
       } else {
         LOG.error(
@@ -168,7 +162,8 @@ public class IbftController {
   }
 
   public void handleBlockTimerExpiry(final BlockTimerExpiry blockTimerExpiry) {
-    final ConsensusRoundIdentifier roundIndentifier = blockTimerExpiry.getRoundIndentifier();
+    final ConsensusRoundIdentifier roundIndentifier =
+        blockTimerExpiry.getRoundIndentifier();
     if (isMsgForCurrentHeight(roundIndentifier)) {
       currentHeightManager.handleBlockTimerExpiry(roundIndentifier);
     } else {
@@ -193,25 +188,30 @@ public class IbftController {
   private void startNewHeightManager(final BlockHeader parentHeader) {
     currentHeightManager = ibftBlockHeightManagerFactory.create(parentHeader);
     final long newChainHeight = currentHeightManager.getChainHeight();
-    futureMessageBuffer.retrieveMessagesForHeight(newChainHeight).forEach(this::handleMessage);
+    futureMessageBuffer.retrieveMessagesForHeight(newChainHeight)
+        .forEach(this::handleMessage);
   }
 
-  private boolean processMessage(final IbftMessage<?> msg, final Message rawMsg) {
-    final ConsensusRoundIdentifier msgRoundIdentifier = msg.getRoundIdentifier();
+  private boolean processMessage(final IbftMessage<?> msg,
+                                 final Message rawMsg) {
+    final ConsensusRoundIdentifier msgRoundIdentifier =
+        msg.getRoundIdentifier();
     if (isMsgForCurrentHeight(msgRoundIdentifier)) {
-      return isMsgFromKnownValidator(msg) && ibftFinalState.isLocalNodeValidator();
+      return isMsgFromKnownValidator(msg) &&
+          ibftFinalState.isLocalNodeValidator();
     } else if (isMsgForFutureChainHeight(msgRoundIdentifier)) {
-      LOG.trace("Received message for future block height round={}", msgRoundIdentifier);
-      futureMessageBuffer.addMessage(msgRoundIdentifier.getSequenceNumber(), rawMsg);
-      // Notify the synchronizer the transmitting peer must have the parent block to the received
-      // message's target height.
+      LOG.trace("Received message for future block height round={}",
+                msgRoundIdentifier);
+      futureMessageBuffer.addMessage(msgRoundIdentifier.getSequenceNumber(),
+                                     rawMsg);
+      // Notify the synchronizer the transmitting peer must have the parent
+      // block to the received message's target height.
       sychronizerUpdater.updatePeerChainState(
           msgRoundIdentifier.getSequenceNumber() - 1L, rawMsg.getConnection());
     } else {
       LOG.trace(
           "IBFT message discarded as it is from a previous block height messageType={} chainHeight={} eventHeight={}",
-          msg.getMessageType(),
-          currentHeightManager.getChainHeight(),
+          msg.getMessageType(), currentHeightManager.getChainHeight(),
           msgRoundIdentifier.getSequenceNumber());
     }
     return false;
@@ -221,11 +221,15 @@ public class IbftController {
     return ibftFinalState.getValidators().contains(msg.getAuthor());
   }
 
-  private boolean isMsgForCurrentHeight(final ConsensusRoundIdentifier roundIdentifier) {
-    return roundIdentifier.getSequenceNumber() == currentHeightManager.getChainHeight();
+  private boolean
+  isMsgForCurrentHeight(final ConsensusRoundIdentifier roundIdentifier) {
+    return roundIdentifier.getSequenceNumber() ==
+        currentHeightManager.getChainHeight();
   }
 
-  private boolean isMsgForFutureChainHeight(final ConsensusRoundIdentifier roundIdentifier) {
-    return roundIdentifier.getSequenceNumber() > currentHeightManager.getChainHeight();
+  private boolean
+  isMsgForFutureChainHeight(final ConsensusRoundIdentifier roundIdentifier) {
+    return roundIdentifier.getSequenceNumber() >
+        currentHeightManager.getChainHeight();
   }
 }

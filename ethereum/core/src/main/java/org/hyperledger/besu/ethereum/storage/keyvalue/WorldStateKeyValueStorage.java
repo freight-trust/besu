@@ -17,13 +17,6 @@
  */
 package org.hyperledger.besu.ethereum.storage.keyvalue;
 
-import org.hyperledger.besu.ethereum.core.Hash;
-import org.hyperledger.besu.ethereum.trie.MerklePatriciaTrie;
-import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage;
-import org.hyperledger.besu.plugin.services.storage.KeyValueStorage;
-import org.hyperledger.besu.plugin.services.storage.KeyValueStorageTransaction;
-import org.hyperledger.besu.util.Subscribers;
-
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -32,7 +25,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
@@ -101,24 +93,24 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
 
   @Override
   public Updater updater() {
-    return new Updater(lock, keyValueStorage.startTransaction(), nodeAddedListeners);
+    return new Updater(lock, keyValueStorage.startTransaction(),
+                       nodeAddedListeners);
   }
 
   @Override
   public long prune(final Predicate<byte[]> inUseCheck) {
     final AtomicInteger prunedKeys = new AtomicInteger(0);
     try (final Stream<byte[]> keys = keyValueStorage.streamKeys()) {
-      keys.forEach(
-          key -> {
-            lock.lock();
-            try {
-              if (!inUseCheck.test(key) && keyValueStorage.tryDelete(key)) {
-                prunedKeys.incrementAndGet();
-              }
-            } finally {
-              lock.unlock();
-            }
-          });
+      keys.forEach(key -> {
+        lock.lock();
+        try {
+          if (!inUseCheck.test(key) && keyValueStorage.tryDelete(key)) {
+            prunedKeys.incrementAndGet();
+          }
+        } finally {
+          lock.unlock();
+        }
+      });
     }
 
     return prunedKeys.get();
@@ -141,10 +133,9 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
     private final Set<Bytes32> addedNodes = new HashSet<>();
     private final Lock lock;
 
-    public Updater(
-        final Lock lock,
-        final KeyValueStorageTransaction transaction,
-        final Subscribers<NodesAddedListener> nodeAddedListeners) {
+    public Updater(final Lock lock,
+                   final KeyValueStorageTransaction transaction,
+                   final Subscribers<NodesAddedListener> nodeAddedListeners) {
       this.lock = lock;
       this.transaction = transaction;
       this.nodeAddedListeners = nodeAddedListeners;
@@ -197,7 +188,8 @@ public class WorldStateKeyValueStorage implements WorldStateStorage {
       lock.lock();
       try {
         LOG.debug("commit");
-        nodeAddedListeners.forEach(listener -> listener.onNodesAdded(addedNodes));
+        nodeAddedListeners.forEach(
+            listener -> listener.onNodesAdded(addedNodes));
         transaction.commit();
       } finally {
         lock.unlock();
